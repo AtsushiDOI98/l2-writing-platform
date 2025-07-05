@@ -6,14 +6,13 @@ import pandas as pd
 from io import BytesIO
 from streamlit_autorefresh import st_autorefresh
 import os
-from openai import OpenAI
 
 # ページ幅を最大化
 st.set_page_config(layout="wide")
 
-# OpenAI APIキーを secrets から取得
-api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=api_key)
+# OpenAIクライアント初期化（secretsや環境変数から取得）
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 
 # セッション初期化
 if 'step' not in st.session_state:
@@ -37,6 +36,12 @@ if 'finished' not in st.session_state:
 if 'brainstorm_timer_started' not in st.session_state:
     st.session_state.brainstorm_timer_started = False
     st.session_state.brainstorm_start_time = None
+if 'brainstorm_elapsed' not in st.session_state:
+    st.session_state.brainstorm_elapsed = 0
+if 'pretest_elapsed' not in st.session_state:
+    st.session_state.pretest_elapsed = 0
+if 'wl_elapsed' not in st.session_state:
+    st.session_state.wl_elapsed = 0
 
 st.title("L2 Writing Platform")
 
@@ -59,6 +64,7 @@ elif st.session_state.step == 1:
 
     if st.session_state.brainstorm_timer_started:
         elapsed = time.time() - st.session_state.brainstorm_start_time
+        st.session_state.brainstorm_elapsed = int(elapsed)
         remaining = max(0, 600 - int(elapsed))
         mins, secs = divmod(remaining, 60)
         st.info(f"残り時間: {mins:02d}:{secs:02d}")
@@ -75,7 +81,7 @@ elif st.session_state.step == 1:
     if st.button("次へ (② Pre-Test)"):
         st.session_state.step = 2
 
-# Step ② Pre-Test（文字数表示あり）
+# Step ② Pre-Test
 elif st.session_state.step == 2:
     st.subheader("② Writing Pre-Test (30分)")
     st_autorefresh(interval=1000, key="autorefresh2")
@@ -89,6 +95,7 @@ elif st.session_state.step == 2:
 
     if st.session_state.pretest_timer_started:
         elapsed = time.time() - st.session_state.pretest_start_time
+        st.session_state.pretest_elapsed = int(elapsed)
         remaining = max(0, 1800 - int(elapsed))
         mins, secs = divmod(remaining, 60)
         st.info(f"残り時間: {mins:02d}:{secs:02d}")
@@ -107,7 +114,7 @@ elif st.session_state.step == 2:
     if st.button("次へ (③ WCF)"):
         st.session_state.step = 3
 
-# Step ③ WCF（GPT-3.5によるフィードバック）
+# Step ③ WCF
 elif st.session_state.step == 3:
     st.subheader("③ Written Corrective Feedback (WCF)")
     if st.session_state.wcf_text == "":
@@ -129,20 +136,33 @@ elif st.session_state.step == 3:
     if st.button("次へ (④ Written Language)"):
         st.session_state.step = 4
 
-# Step ④ WCFとPre-Testを横並び + 下段に振り返り欄
+# Step ④
 elif st.session_state.step == 4:
     st.subheader("④ Written Language with WCF")
     st.markdown("### 振り返り")
+    if 'wl_start_time' not in st.session_state:
+        st.session_state.wl_start_time = time.time()
+
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("#### 元の文 (Pre-Test)")
-        st.text_area("Pre-Test 文", st.session_state.pretest_text, height=300, disabled=True)
+        st.markdown(f"""
+            <div style="padding:10px; background-color:#ffffff; border:1px solid #ccc; border-radius:5px; height:300px; overflow:auto;">
+                <pre style="white-space: pre-wrap;">{st.session_state.pretest_text}</pre>
+            </div>
+        """, unsafe_allow_html=True)
+
     with col2:
         st.markdown("#### AIによる修正文 (WCF)")
-        st.text_area("WCF 修正文", st.session_state.wcf_text, height=300, disabled=True)
+        st.markdown(f"""
+            <div style="padding:10px; background-color:#ffffff; border:1px solid #ccc; border-radius:5px; height:300px; overflow:auto;">
+                <pre style="white-space: pre-wrap;">{st.session_state.wcf_text}</pre>
+            </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("#### 考えたこと・気づいたこと")
     st.session_state.wl_text = st.text_area("フィードバックと自身の文を比較し、考えたことや気づいたことを書いてください。", height=200)
+    st.session_state.wl_elapsed = int(time.time() - st.session_state.wl_start_time)
 
     if st.button("次へ (⑤ Post-Test)"):
         st.session_state.step = 5
@@ -173,7 +193,7 @@ elif st.session_state.step == 5 and not st.session_state.finished:
     if st.button("完了"):
         st.session_state.finished = True
 
-# 完了ページ + ダウンロード
+# 完了ページ
 elif st.session_state.finished:
     st.success("お疲れ様でした！すべてのステップが完了しました。")
     st.markdown("以下のボタンから、全データを **Excel形式 (.xlsx)** でダウンロードできます。")
@@ -183,9 +203,12 @@ elif st.session_state.finished:
             "名前": [st.session_state.name],
             "学籍番号": [st.session_state.student_id],
             "① Brainstorming": [st.session_state.brainstorm_text],
+            "Brainstorming時間（秒）": [st.session_state.brainstorm_elapsed],
             "② Pre-Test Writing": [st.session_state.pretest_text],
+            "Pre-Test時間（秒）": [st.session_state.pretest_elapsed],
             "③ AI-WCF": [st.session_state.wcf_text],
             "④ Written Language": [st.session_state.wl_text],
+            "振り返り時間（秒）": [st.session_state.wl_elapsed],
             "⑤ Post-Test Writing": [st.session_state.posttest_text]
         }
         df = pd.DataFrame(data)
