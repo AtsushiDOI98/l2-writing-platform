@@ -25,7 +25,6 @@ for key in [
 
 st.title("L2 Writing Platform")
 
-# Step 0: 学習者情報入力
 if st.session_state.step is None:
     st.session_state.step = 0
 
@@ -33,8 +32,12 @@ if st.session_state.step == 0:
     st.subheader("学習者情報を入力してください")
     st.session_state.name = st.text_input("名前：", value=st.session_state.name)
     st.session_state.student_id = st.text_input("学籍番号：", value=st.session_state.student_id)
+
     if st.button("次へ (① ブレインストーミング)"):
-        st.session_state.step = 1
+        if st.session_state.name.strip() and st.session_state.student_id.strip():
+            st.session_state.step = 1
+        else:
+            st.warning("⚠️ 名前と学籍番号の両方を入力してください。")
 
 # Step ① ブレインストーミング
 elif st.session_state.step == 1:
