@@ -43,7 +43,7 @@ if st.session_state.step == 0:
     st.subheader("学習者情報を入力してください")
     st.session_state.name = st.text_input("名前：", value=st.session_state.name)
     st.session_state.student_id = st.text_input("学籍番号：", value=st.session_state.student_id)
-    if st.button("次へ (\u2460 ブレインストーミング)"):
+    if st.button("次へ (① ブレインストーミング)"):
         if st.session_state.name.strip() and st.session_state.student_id.strip():
             st.session_state.step = 1
         else:
@@ -51,7 +51,7 @@ if st.session_state.step == 0:
 
 # Step 1: ブレインストーミング
 elif st.session_state.step == 1:
-    st.subheader("\u2460 ブレインストーミング (10分)")
+    st.subheader("① ブレインストーミング (10分)")
     st_autorefresh(interval=1000, key="refresh1")
     if not st.session_state.brainstorm_timer_started:
         if st.button("▶️ タイマーを開始 (10分)"):
@@ -70,12 +70,12 @@ elif st.session_state.step == 1:
         height=300,
         disabled=not st.session_state.brainstorm_timer_started
     )
-    if st.button("次へ (\u2461 Pre-Test)"):
+    if st.button("次へ (② Pre-Test)"):
         st.session_state.step = 2
 
 # Step 2: Pre-Test
 elif st.session_state.step == 2:
-    st.subheader("\u2461 Writing Pre-Test (30分)")
+    st.subheader("② Writing Pre-Test (30分)")
     st_autorefresh(interval=1000, key="refresh2")
     if not st.session_state.pretest_timer_started:
         if st.button("▶️ タイマーを開始 (30分)"):
@@ -100,12 +100,12 @@ elif st.session_state.step == 2:
             disabled=not st.session_state.pretest_timer_started
         )
         st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
-    if st.button("次へ (\u2462 WCF)"):
+    if st.button("次へ (③ WCF)"):
         st.session_state.step = 3
 
 # Step 3: WCF
 elif st.session_state.step == 3:
-    st.subheader("\u2462 Written Corrective Feedback (WCF)")
+    st.subheader("③ Written Corrective Feedback (WCF)")
     if st.session_state.wcf_text == "":
         with st.spinner("AIによるフィードバックを生成中..."):
             try:
@@ -122,12 +122,12 @@ elif st.session_state.step == 3:
                 st.error(f"エラーが発生しました: {e}")
                 st.stop()
     st.text_area("AIによるフィードバック", st.session_state.wcf_text, height=300, disabled=True)
-    if st.button("次へ (\u2463 Written Language)"):
+    if st.button("次へ (④ Written Language)"):
         st.session_state.step = 4
 
 # Step 4: WL
 elif st.session_state.step == 4:
-    st.subheader("\u2463 Written Language with WCF")
+    st.subheader("④ Written Language with WCF")
     st.markdown("### 振り返り")
     if st.session_state.wl_start_time is None:
         st.session_state.wl_start_time = time.time()
@@ -146,12 +146,12 @@ elif st.session_state.step == 4:
         disabled=st.session_state.wl_start_time is None
     )
     st.session_state.wl_elapsed = int(time.time() - st.session_state.wl_start_time)
-    if st.button("次へ (\u2464 Post-Test)"):
+    if st.button("次へ (⑤ Post-Test)"):
         st.session_state.step = 5
 
 # Step 5: Post-Test
 elif st.session_state.step == 5 and not st.session_state.finished:
-    st.subheader("\u2464 Writing Post-Test (30分)")
+    st.subheader("⑤ Writing Post-Test (30分)")
     st_autorefresh(interval=1000, key="refresh5")
 
     if not st.session_state.posttest_timer_started:
