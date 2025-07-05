@@ -43,7 +43,7 @@ if st.session_state.step == 0:
     st.subheader("学習者情報を入力してください")
     st.session_state.name = st.text_input("名前：", value=st.session_state.name)
     st.session_state.student_id = st.text_input("学籍番号：", value=st.session_state.student_id)
-    if st.button("次へ (① ブレインストーミング)"):
+    if st.button("次へ (\u2460 ブレインストーミング)"):
         if st.session_state.name.strip() and st.session_state.student_id.strip():
             st.session_state.step = 1
         else:
@@ -51,7 +51,7 @@ if st.session_state.step == 0:
 
 # Step 1: ブレインストーミング
 elif st.session_state.step == 1:
-    st.subheader("① ブレインストーミング (10分)")
+    st.subheader("\u2460 ブレインストーミング (10分)")
     st_autorefresh(interval=1000, key="refresh1")
     if not st.session_state.brainstorm_timer_started:
         if st.button("▶️ タイマーを開始 (10分)"):
@@ -70,12 +70,12 @@ elif st.session_state.step == 1:
         height=300,
         disabled=not st.session_state.brainstorm_timer_started
     )
-    if st.button("次へ (② Pre-Test)"):
+    if st.button("次へ (\u2461 Pre-Test)"):
         st.session_state.step = 2
 
 # Step 2: Pre-Test
 elif st.session_state.step == 2:
-    st.subheader("② Writing Pre-Test (30分)")
+    st.subheader("\u2461 Writing Pre-Test (30分)")
     st_autorefresh(interval=1000, key="refresh2")
     if not st.session_state.pretest_timer_started:
         if st.button("▶️ タイマーを開始 (30分)"):
@@ -99,13 +99,13 @@ elif st.session_state.step == 2:
             height=300,
             disabled=not st.session_state.pretest_timer_started
         )
-        st.markdown(f"単語数: {len(st.session_state.pretest_text.split())}")
-    if st.button("次へ (③ WCF)"):
+        st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
+    if st.button("次へ (\u2462 WCF)"):
         st.session_state.step = 3
 
 # Step 3: WCF
 elif st.session_state.step == 3:
-    st.subheader("③ Written Corrective Feedback (WCF)")
+    st.subheader("\u2462 Written Corrective Feedback (WCF)")
     if st.session_state.wcf_text == "":
         with st.spinner("AIによるフィードバックを生成中..."):
             try:
@@ -122,23 +122,21 @@ elif st.session_state.step == 3:
                 st.error(f"エラーが発生しました: {e}")
                 st.stop()
     st.text_area("AIによるフィードバック", st.session_state.wcf_text, height=300, disabled=True)
-    if st.button("次へ (④ Written Language)"):
+    if st.button("次へ (\u2463 Written Language)"):
         st.session_state.step = 4
 
 # Step 4: WL
 elif st.session_state.step == 4:
-    st.subheader("④ Written Language with WCF")
+    st.subheader("\u2463 Written Language with WCF")
     st.markdown("### 振り返り")
     if st.session_state.wl_start_time is None:
         st.session_state.wl_start_time = time.time()
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("#### 元の文 (Pre-Test)")
-        st.code(st.session_state.pretest_text, language="markdown")
-    with col2:
-        st.markdown("#### AIによる修正文 (WCF)")
-        st.code(st.session_state.wcf_text, language="markdown")
+    st.markdown("#### 元の文 (Pre-Test)")
+    st.text_area("", value=st.session_state.pretest_text, height=200, disabled=True)
+
+    st.markdown("#### AIによる修正文 (WCF)")
+    st.text_area("", value=st.session_state.wcf_text, height=200, disabled=True)
 
     st.markdown("#### 考えたこと・気づいたこと")
     st.session_state.wl_text = st.text_area(
@@ -148,14 +146,65 @@ elif st.session_state.step == 4:
         disabled=st.session_state.wl_start_time is None
     )
     st.session_state.wl_elapsed = int(time.time() - st.session_state.wl_start_time)
-    if st.button("次へ (⑤ Post-Test)"):
+    if st.button("次へ (\u2464 Post-Test)"):
         st.session_state.step = 5
 
 # Step 5: Post-Test
 elif st.session_state.step == 5 and not st.session_state.finished:
-    st.subheader("⑤ Writing Post-Test (30分)")
+    st.subheader("\u2464 Writing Post-Test (30分)")
     st_autorefresh(interval=1000, key="refresh5")
 
     if not st.session_state.posttest_timer_started:
         if st.button("▶️ タイマーを開始 (30分)"):
-            st.session_state.posttest_timer_starte_
+            st.session_state.posttest_timer_started = True
+            st.session_state.posttest_start_time = time.time()
+    else:
+        elapsed = time.time() - st.session_state.posttest_start_time
+        remaining = max(0, 1800 - int(elapsed))
+        mins, secs = divmod(remaining, 60)
+        st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
+        st.session_state.posttest_elapsed = int(elapsed)
+
+    st.session_state.posttest_text = st.text_area(
+        "英作文を書いてください：",
+        value=st.session_state.posttest_text,
+        height=300,
+        disabled=not st.session_state.posttest_timer_started
+    )
+    st.markdown(f"単語数: {len(st.session_state.posttest_text.split())} / 文字数: {len(st.session_state.posttest_text)}")
+    if st.button("完了"):
+        st.session_state.finished = True
+
+# 完了ページ
+elif st.session_state.finished:
+    st.success("すべてのステップが完了しました。お疲れ様でした！")
+
+    def generate_excel():
+        df = pd.DataFrame({
+            "名前": [st.session_state.name],
+            "学籍番号": [st.session_state.student_id],
+            "① Brainstorming": [st.session_state.brainstorm_text],
+            "② Pre-Test": [st.session_state.pretest_text],
+            "③ AI-WCF": [st.session_state.wcf_text],
+            "④ Reflection": [st.session_state.wl_text],
+            "⑤ Post-Test": [st.session_state.posttest_text],
+            "Brainstorm(sec)": [st.session_state.brainstorm_elapsed],
+            "Pre-Test(sec)": [st.session_state.pretest_elapsed],
+            "Reflection(sec)": [st.session_state.wl_elapsed],
+            "Post-Test(sec)": [st.session_state.posttest_elapsed],
+            "Pre-Test(chars)": [len(st.session_state.pretest_text)],
+            "Post-Test(chars)": [len(st.session_state.posttest_text)]
+        })
+        out = BytesIO()
+        with pd.ExcelWriter(out, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Writing Session")
+        return out.getvalue()
+
+    st.download_button(
+        label="結果をExcelでダウンロード",
+        data=generate_excel(),
+        file_name=f"writing_result_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+st.caption("© 2025 Writing Platform by Atsushi Doi")
