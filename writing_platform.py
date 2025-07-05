@@ -10,38 +10,20 @@ import os
 # ページ幅を最大化
 st.set_page_config(layout="wide")
 
-# OpenAIクライアント初期化（secretsや環境変数から取得）
+# OpenAIクライアント初期化（Streamlit secretsを使用）
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-
 # セッション初期化
-if 'step' not in st.session_state:
-    st.session_state.step = 0
-if 'name' not in st.session_state:
-    st.session_state.name = ""
-if 'student_id' not in st.session_state:
-    st.session_state.student_id = ""
-if 'brainstorm_text' not in st.session_state:
-    st.session_state.brainstorm_text = ""
-if 'pretest_text' not in st.session_state:
-    st.session_state.pretest_text = ""
-if 'wcf_text' not in st.session_state:
-    st.session_state.wcf_text = ""
-if 'wl_text' not in st.session_state:
-    st.session_state.wl_text = ""
-if 'posttest_text' not in st.session_state:
-    st.session_state.posttest_text = ""
-if 'finished' not in st.session_state:
-    st.session_state.finished = False
-if 'brainstorm_timer_started' not in st.session_state:
-    st.session_state.brainstorm_timer_started = False
-    st.session_state.brainstorm_start_time = None
-if 'brainstorm_elapsed' not in st.session_state:
-    st.session_state.brainstorm_elapsed = 0
-if 'pretest_elapsed' not in st.session_state:
-    st.session_state.pretest_elapsed = 0
-if 'wl_elapsed' not in st.session_state:
-    st.session_state.wl_elapsed = 0
+for key, default in {
+    'step': 0, 'name': "", 'student_id': "", 'brainstorm_text': "",
+    'pretest_text': "", 'wcf_text': "", 'wl_text': "", 'posttest_text': "",
+    'finished': False, 'brainstorm_timer_started': False,
+    'brainstorm_start_time': None, 'pretest_timer_started': False,
+    'pretest_start_time': None, 'posttest_timer_started': False,
+    'posttest_start_time': None, 'wl_start_time': None
+}.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
 
 st.title("L2 Writing Platform")
 
@@ -50,12 +32,12 @@ if st.session_state.step == 0:
     st.subheader("学習者情報を入力してください")
     st.session_state.name = st.text_input("名前：", value=st.session_state.name)
     st.session_state.student_id = st.text_input("学籍番号：", value=st.session_state.student_id)
-    if st.button("次へ (① ブレインストーミング)"):
+    if st.button("次へ (\u2460 ブレインストーミング)"):
         st.session_state.step = 1
 
-# Step ① ブレインストーミング
+# Step 1: ブレインストーミング
 elif st.session_state.step == 1:
-    st.subheader("① ブレインストーミング (10分)")
+    st.subheader("\u2460 ブレインストーミング (10分)")
     st_autorefresh(interval=1000, key="autorefresh1")
 
     if st.button("タイマーを開始 (10分)") and not st.session_state.brainstorm_timer_started:
@@ -64,7 +46,6 @@ elif st.session_state.step == 1:
 
     if st.session_state.brainstorm_timer_started:
         elapsed = time.time() - st.session_state.brainstorm_start_time
-        st.session_state.brainstorm_elapsed = int(elapsed)
         remaining = max(0, 600 - int(elapsed))
         mins, secs = divmod(remaining, 60)
         st.info(f"残り時間: {mins:02d}:{secs:02d}")
@@ -78,16 +59,13 @@ elif st.session_state.step == 1:
         height=300
     )
 
-    if st.button("次へ (② Pre-Test)"):
+    if st.button("次へ (\u2461 Pre-Test)"):
         st.session_state.step = 2
 
-# Step ② Pre-Test
+# Step 2: Pre-Test
 elif st.session_state.step == 2:
-    st.subheader("② Writing Pre-Test (30分)")
+    st.subheader("\u2461 Writing Pre-Test (30分)")
     st_autorefresh(interval=1000, key="autorefresh2")
-    if 'pretest_timer_started' not in st.session_state:
-        st.session_state.pretest_timer_started = False
-        st.session_state.pretest_start_time = None
 
     if st.button("タイマーを開始 (30分)") and not st.session_state.pretest_timer_started:
         st.session_state.pretest_timer_started = True
@@ -95,7 +73,6 @@ elif st.session_state.step == 2:
 
     if st.session_state.pretest_timer_started:
         elapsed = time.time() - st.session_state.pretest_start_time
-        st.session_state.pretest_elapsed = int(elapsed)
         remaining = max(0, 1800 - int(elapsed))
         mins, secs = divmod(remaining, 60)
         st.info(f"残り時間: {mins:02d}:{secs:02d}")
@@ -111,12 +88,12 @@ elif st.session_state.step == 2:
         st.session_state.pretest_text = st.text_area("英作文を書いてください：", value=st.session_state.pretest_text, height=300)
         st.markdown(f"単語数: {len(st.session_state.pretest_text.split())}")
 
-    if st.button("次へ (③ WCF)"):
+    if st.button("次へ (\u2462 WCF)"):
         st.session_state.step = 3
 
-# Step ③ WCF
+# Step 3: WCF
 elif st.session_state.step == 3:
-    st.subheader("③ Written Corrective Feedback (WCF)")
+    st.subheader("\u2462 Written Corrective Feedback (WCF)")
     if st.session_state.wcf_text == "":
         with st.spinner("AIによるフィードバックを生成中..."):
             try:
@@ -133,30 +110,30 @@ elif st.session_state.step == 3:
                 st.error(f"エラーが発生しました: {e}")
                 st.stop()
     st.text_area("AIによるフィードバック", st.session_state.wcf_text, height=300)
-    if st.button("次へ (④ Written Language)"):
+    if st.button("次へ (\u2463 Written Language)"):
         st.session_state.step = 4
 
-# Step ④
+# Step 4: WCF + Pre-Test 表示 + 振り返り
 elif st.session_state.step == 4:
-    st.subheader("④ Written Language with WCF")
+    st.subheader("\u2463 Written Language with WCF")
     st.markdown("### 振り返り")
-    if 'wl_start_time' not in st.session_state:
+    if st.session_state.wl_start_time is None:
         st.session_state.wl_start_time = time.time()
 
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("#### 元の文 (Pre-Test)")
         st.markdown(f"""
-            <div style="padding:10px; background-color:#ffffff; border:1px solid #ccc; border-radius:5px; height:300px; overflow:auto;">
-                <pre style="white-space: pre-wrap;">{st.session_state.pretest_text}</pre>
+            <div style="padding:10px; background-color:#f8f9fa; color:#000; border:1px solid #ccc; border-radius:5px; height:300px; overflow-y: scroll; white-space: pre-wrap;">
+                {st.session_state.pretest_text}
             </div>
         """, unsafe_allow_html=True)
 
     with col2:
         st.markdown("#### AIによる修正文 (WCF)")
         st.markdown(f"""
-            <div style="padding:10px; background-color:#ffffff; border:1px solid #ccc; border-radius:5px; height:300px; overflow:auto;">
-                <pre style="white-space: pre-wrap;">{st.session_state.wcf_text}</pre>
+            <div style="padding:10px; background-color:#f8f9fa; color:#000; border:1px solid #ccc; border-radius:5px; height:300px; overflow-y: scroll; white-space: pre-wrap;">
+                {st.session_state.wcf_text}
             </div>
         """, unsafe_allow_html=True)
 
@@ -164,16 +141,13 @@ elif st.session_state.step == 4:
     st.session_state.wl_text = st.text_area("フィードバックと自身の文を比較し、考えたことや気づいたことを書いてください。", height=200)
     st.session_state.wl_elapsed = int(time.time() - st.session_state.wl_start_time)
 
-    if st.button("次へ (⑤ Post-Test)"):
+    if st.button("次へ (\u2464 Post-Test)"):
         st.session_state.step = 5
 
-# Step ⑤ Post-Test
+# Step 5: Post-Test
 elif st.session_state.step == 5 and not st.session_state.finished:
-    st.subheader("⑤ Writing Post-Test (30分)")
+    st.subheader("\u2464 Writing Post-Test (30分)")
     st_autorefresh(interval=1000, key="autorefresh5")
-    if 'posttest_timer_started' not in st.session_state:
-        st.session_state.posttest_timer_started = False
-        st.session_state.posttest_start_time = None
 
     if st.button("タイマーを開始 (30分)") and not st.session_state.posttest_timer_started:
         st.session_state.posttest_timer_started = True
@@ -193,23 +167,33 @@ elif st.session_state.step == 5 and not st.session_state.finished:
     if st.button("完了"):
         st.session_state.finished = True
 
-# 完了ページ
+# Step 6: 完了とダウンロード
 elif st.session_state.finished:
     st.success("お疲れ様でした！すべてのステップが完了しました。")
-    st.markdown("以下のボタンから、全データを **Excel形式 (.xlsx)** でダウンロードできます。")
+    st.markdown("以下のボタンから、全データを Excel形式 (.xlsx) でダウンロードできます。")
 
     def generate_excel_file():
         data = {
             "名前": [st.session_state.name],
             "学籍番号": [st.session_state.student_id],
             "① Brainstorming": [st.session_state.brainstorm_text],
-            "Brainstorming時間（秒）": [st.session_state.brainstorm_elapsed],
+            "① 所要時間（秒）": [
+                int(time.time() - st.session_state.brainstorm_start_time)
+                if st.session_state.brainstorm_start_time else None
+            ],
             "② Pre-Test Writing": [st.session_state.pretest_text],
-            "Pre-Test時間（秒）": [st.session_state.pretest_elapsed],
+            "② 所要時間（秒）": [
+                int(time.time() - st.session_state.pretest_start_time)
+                if st.session_state.pretest_start_time else None
+            ],
             "③ AI-WCF": [st.session_state.wcf_text],
             "④ Written Language": [st.session_state.wl_text],
-            "振り返り時間（秒）": [st.session_state.wl_elapsed],
-            "⑤ Post-Test Writing": [st.session_state.posttest_text]
+            "④ 所要時間（秒）": [st.session_state.wl_elapsed],
+            "⑤ Post-Test Writing": [st.session_state.posttest_text],
+            "⑤ 所要時間（秒）": [
+                int(time.time() - st.session_state.posttest_start_time)
+                if st.session_state.posttest_start_time else None
+            ]
         }
         df = pd.DataFrame(data)
         output = BytesIO()
