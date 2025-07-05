@@ -5,12 +5,15 @@ from openai import OpenAI
 import pandas as pd
 from io import BytesIO
 from streamlit_autorefresh import st_autorefresh
+import os
+from openai import OpenAI
 
 # ページ幅を最大化
 st.set_page_config(layout="wide")
 
-# OpenAIクライアント初期化（APIキーをここに記入）
-client = OpenAI(api_key="")
+# OpenAI APIキーを secrets から取得
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
 
 # セッション初期化
 if 'step' not in st.session_state:
