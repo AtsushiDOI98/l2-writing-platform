@@ -89,6 +89,7 @@ elif st.session_state.step == 2:
         st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
         st.session_state.pretest_elapsed = int(elapsed)
 
+    # 横並び：左にブレインストーミング内容、右に英作文
     col1, col2 = st.columns(2)
 
     with col1:
@@ -107,6 +108,7 @@ elif st.session_state.step == 2:
             f"""
             <div style='
                 height: 350px;
+                margin-right: 8px;
                 padding: 10px;
                 border: 1px solid #ccc;
                 border-radius: 5px;
@@ -116,6 +118,7 @@ elif st.session_state.step == 2:
                 font-size: 16px;
                 line-height: 1.5;
                 white-space: pre-wrap;
+                box-sizing: border-box;
             '>
                 {st.session_state.brainstorm_text.replace('<', '&lt;').replace('>', '&gt;').replace('\n','<br>')}
             </div>
@@ -136,9 +139,9 @@ elif st.session_state.step == 2:
             unsafe_allow_html=True
         )
         st.session_state.pretest_text = st.text_area(
-            label=" ",  # label消して余白最小限に
+            label=" ",  # ラベル行の隙間を回避
             value=st.session_state.pretest_text,
-            height=350,
+            height=350,  # 左側と同じ高さに
             disabled=not st.session_state.pretest_timer_started
         )
         st.markdown(
