@@ -77,7 +77,7 @@ elif st.session_state.step == 1:
 elif st.session_state.step == 2:
     st.subheader("② Writing Pre-Test (30分)")
     st_autorefresh(interval=1000, key="refresh2")
-
+    
     if not st.session_state.pretest_timer_started:
         if st.button("▶️ タイマーを開始 (30分)"):
             st.session_state.pretest_timer_started = True
@@ -89,50 +89,38 @@ elif st.session_state.step == 2:
         st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
         st.session_state.pretest_elapsed = int(elapsed)
 
-    # カスタムCSS：textareaの背景を白に、色を黒に固定
-    st.markdown("""
-        <style>
-        textarea {
-            background-color: white !important;
-            color: black !important;
-            font-family: sans-serif !important;
-            font-size: 16px !important;
-            line-height: 1.5 !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # 横並び：左にブレインストーミング、右に英作文欄
+    # 横並び：左にブレインストーミング内容、右に英作文
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("### ブレインストーミングの内容")
         st.markdown(
             f"""
-            <div style="
-                height: 360px;
+            <div style='
+                height: 300px;
                 overflow-y: auto;
                 padding: 10px;
                 border: 1px solid #ccc;
                 border-radius: 5px;
                 background-color: white;
+                display: flex;
+                align-items: flex-start;
                 font-family: sans-serif;
-                font-size: 16px;
                 line-height: 1.5;
                 white-space: pre-wrap;
-            ">
-                {st.session_state.brainstorm_text.replace('<', '&lt;').replace('>', '&gt;')}
+            '>
+                {st.session_state.brainstorm_text.replace('<', '&lt;').replace('>', '&gt;').replace('\n','<br>')}
             </div>
             """,
             unsafe_allow_html=True
         )
 
     with col2:
-        st.markdown("### 英作文を書いてください")
+        st.markdown("### 英作文を書いてください：")
         st.session_state.pretest_text = st.text_area(
             label="",
             value=st.session_state.pretest_text,
-            height=360,  # 高さを左欄と完全に合わせる
+            height=300,
             disabled=not st.session_state.pretest_timer_started
         )
         st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
