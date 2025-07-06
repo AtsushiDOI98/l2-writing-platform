@@ -77,7 +77,6 @@ elif st.session_state.step == 1:
 elif st.session_state.step == 2:
     st.subheader("② Writing Pre-Test (30分)")
     st_autorefresh(interval=1000, key="refresh2")
-    
     if not st.session_state.pretest_timer_started:
         if st.button("▶️ タイマーを開始 (30分)"):
             st.session_state.pretest_timer_started = True
@@ -89,41 +88,25 @@ elif st.session_state.step == 2:
         st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
         st.session_state.pretest_elapsed = int(elapsed)
 
-    # 横並び：左にブレインストーミング内容、右に英作文
     col1, col2 = st.columns(2)
-
     with col1:
         st.markdown("### ブレインストーミングの内容")
         st.markdown(
             f"""
-            <div style='
-                height: 300px;
-                overflow-y: auto;
-                padding: 10px;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                background-color: white;
-                display: flex;
-                align-items: flex-start;
-                font-family: sans-serif;
-                line-height: 1.5;
-                white-space: pre-wrap;
-            '>
-                {st.session_state.brainstorm_text.replace('<', '&lt;').replace('>', '&gt;').replace('\n','<br>')}
+            <div style='height: 300px; overflow-y: auto; padding: 10px; border: 1px solid #ccc; border-radius: 5px; background-color: white;'>
+            {st.session_state.brainstorm_text.replace('<', '&lt;').replace('>', '&gt;').replace('\n','<br>')}
             </div>
             """,
             unsafe_allow_html=True
         )
-
     with col2:
-        st.markdown("### 英作文を書いてください：")  # ラベル風のタイトル
-        st.text_area(
-           label=" ",  # ラベルの余白を最小限に
-           value=st.session_state.pretest_text,
-           height=300,
-           disabled=not st.session_state.pretest_timer_started
+        st.markdown("### 英作文を書いてください：")
+        st.session_state.pretest_text = st.text_area(
+            label=" ",
+            value=st.session_state.pretest_text,
+            height=300,
+            disabled=not st.session_state.pretest_timer_started
         )
-
         st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
 
     if st.button("次へ (③ WCF)"):
@@ -132,7 +115,6 @@ elif st.session_state.step == 2:
 # Step 3: WCF
 elif st.session_state.step == 3:
     st.subheader("③ Written Corrective Feedback (WCF)")
-    
     if st.session_state.wcf_text == "":
         with st.spinner("AIによるフィードバックを生成中..."):
             try:
@@ -148,57 +130,37 @@ elif st.session_state.step == 3:
             except Exception as e:
                 st.error(f"エラーが発生しました: {e}")
                 st.stop()
-
     st.markdown("#### AIによるフィードバック")
-
     st.markdown(
         f"""
-        <div style="
-            height: 300px;
-            overflow-y: auto;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: white;
-            font-family: sans-serif;
-            line-height: 1.6;
-        ">
-            {st.session_state.wcf_text.replace('\n', '<br>')}
+        <div style='height:300px; overflow-y:auto; padding:10px; border:1px solid #ccc; border-radius:5px; background-color:white;'>
+        {st.session_state.wcf_text.replace('\n','<br>')}
         </div>
         """,
         unsafe_allow_html=True
     )
-
     if st.button("次へ (④ Written Language)"):
         st.session_state.step = 4
-
 
 # Step 4: WL
 elif st.session_state.step == 4:
     st.subheader("④ Written Language with WCF")
     st.markdown("### 振り返り")
-
     if st.session_state.wl_start_time is None:
         st.session_state.wl_start_time = time.time()
-
-    # 2カラム：左にPre-Test、右にWCF
     col1, col2 = st.columns(2)
-
     with col1:
         st.markdown("#### 元の文 (Pre-Test)")
         st.markdown(
             f"<div style='height:300px; overflow-y:auto; padding:10px; border:1px solid #ccc; border-radius:5px; background-color:white;'>{st.session_state.pretest_text.replace(chr(10), '<br>')}</div>",
             unsafe_allow_html=True
         )
-
     with col2:
         st.markdown("#### AIによる修正文 (WCF)")
         st.markdown(
             f"<div style='height:300px; overflow-y:auto; padding:10px; border:1px solid #ccc; border-radius:5px; background-color:white;'>{st.session_state.wcf_text.replace(chr(10), '<br>')}</div>",
             unsafe_allow_html=True
         )
-
-    # 下に振り返り欄
     st.markdown("#### 考えたこと・気づいたこと")
     st.session_state.wl_text = st.text_area(
         "フィードバックと自身の文を比較し、考えたことや気づいたことを書いてください。",
@@ -207,16 +169,13 @@ elif st.session_state.step == 4:
         disabled=st.session_state.wl_start_time is None
     )
     st.session_state.wl_elapsed = int(time.time() - st.session_state.wl_start_time)
-
     if st.button("次へ (⑤ Post-Test)"):
         st.session_state.step = 5
-
 
 # Step 5: Post-Test
 elif st.session_state.step == 5 and not st.session_state.finished:
     st.subheader("⑤ Writing Post-Test (30分)")
     st_autorefresh(interval=1000, key="refresh5")
-
     if not st.session_state.posttest_timer_started:
         if st.button("▶️ タイマーを開始 (30分)"):
             st.session_state.posttest_timer_started = True
@@ -227,7 +186,6 @@ elif st.session_state.step == 5 and not st.session_state.finished:
         mins, secs = divmod(remaining, 60)
         st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
         st.session_state.posttest_elapsed = int(elapsed)
-
     st.session_state.posttest_text = st.text_area(
         "英作文を書いてください：",
         value=st.session_state.posttest_text,
@@ -235,7 +193,6 @@ elif st.session_state.step == 5 and not st.session_state.finished:
         disabled=not st.session_state.posttest_timer_started
     )
     st.markdown(f"単語数: {len(st.session_state.posttest_text.split())} / 文字数: {len(st.session_state.posttest_text)}")
-
     if st.button("完了"):
         st.session_state.finished = True
 
