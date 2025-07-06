@@ -77,6 +77,7 @@ elif st.session_state.step == 1:
 elif st.session_state.step == 2:
     st.subheader("② Writing Pre-Test (30分)")
     st_autorefresh(interval=1000, key="refresh2")
+    
     if not st.session_state.pretest_timer_started:
         if st.button("▶️ タイマーを開始 (30分)"):
             st.session_state.pretest_timer_started = True
@@ -88,19 +89,25 @@ elif st.session_state.step == 2:
         st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
         st.session_state.pretest_elapsed = int(elapsed)
 
-    st.markdown("### ブレインストーミングの内容")
-    st.text_area("", value=st.session_state.brainstorm_text, height=200, disabled=True)
+    # 横並びで左：ブレインストーミング、右：英作文欄
+    col1, col2 = st.columns(2)
 
-    st.session_state.pretest_text = st.text_area(
-        "英作文を書いてください：",
-        value=st.session_state.pretest_text,
-        height=300,
-        disabled=not st.session_state.pretest_timer_started
-    )
-    st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
+    with col1:
+        st.markdown("### ブレインストーミングの内容")
+        st.text_area("", value=st.session_state.brainstorm_text, height=300, disabled=True)
+
+    with col2:
+        st.session_state.pretest_text = st.text_area(
+            "英作文を書いてください：",
+            value=st.session_state.pretest_text,
+            height=300,
+            disabled=not st.session_state.pretest_timer_started
+        )
+        st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
 
     if st.button("次へ (③ WCF)"):
         st.session_state.step = 3
+
 
 # Step 3: WCF
 elif st.session_state.step == 3:
@@ -130,15 +137,22 @@ elif st.session_state.step == 3:
 elif st.session_state.step == 4:
     st.subheader("④ Written Language with WCF")
     st.markdown("### 振り返り")
+    
     if st.session_state.wl_start_time is None:
         st.session_state.wl_start_time = time.time()
 
-    st.markdown("#### 元の文 (Pre-Test)")
-    st.text_area("", value=st.session_state.pretest_text, height=200, disabled=True)
+    # 2カラム：左にPre-Test、右にWCF
+    col1, col2 = st.columns(2)
 
-    st.markdown("#### AIによる修正文 (WCF)")
-    st.text_area("", value=st.session_state.wcf_text, height=200, disabled=True)
+    with col1:
+        st.markdown("#### 元の文 (Pre-Test)")
+        st.text_area("", value=st.session_state.pretest_text, height=300, disabled=True)
 
+    with col2:
+        st.markdown("#### AIによる修正文 (WCF)")
+        st.text_area("", value=st.session_state.wcf_text, height=300, disabled=True)
+
+    # 下に振り返り欄
     st.markdown("#### 考えたこと・気づいたこと")
     st.session_state.wl_text = st.text_area(
         "フィードバックと自身の文を比較し、考えたことや気づいたことを書いてください。",
