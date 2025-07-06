@@ -116,20 +116,21 @@ elif st.session_state.step == 2:
         )
 
     with col2:
-        # HTMLで余白なしのラベルを表示
+        # ラベルとして見せるタイトル（余白なし）
         st.markdown(
             """
             <div style='font-weight: bold; font-size: 20px; margin-bottom: 4px;'>英作文を書いてください：</div>
             """,
             unsafe_allow_html=True
         )
-        # text_area で記入欄
+        # テキストエリア（余白なし、上下対称のため height: 300px）
         st.session_state.pretest_text = st.text_area(
-            label=" ",  # ラベルを空白にして余計な隙間を回避
+            label=" ",  # label を空にすることで余計な隙間を消す
             value=st.session_state.pretest_text,
             height=300,
             disabled=not st.session_state.pretest_timer_started
         )
+
         st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
 
     if st.button("次へ (③ WCF)"):
