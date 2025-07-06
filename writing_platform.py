@@ -73,11 +73,11 @@ elif st.session_state.step == 1:
     if st.button("次へ (② Pre-Test)"):
         st.session_state.step = 2
 
-# # Step 2: Pre-Test
+# Step 2: Pre-Test
 elif st.session_state.step == 2:
     st.subheader("② Writing Pre-Test (30分)")
     st_autorefresh(interval=1000, key="refresh2")
-    
+
     if not st.session_state.pretest_timer_started:
         if st.button("▶️ タイマーを開始 (30分)"):
             st.session_state.pretest_timer_started = True
@@ -89,7 +89,7 @@ elif st.session_state.step == 2:
         st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
         st.session_state.pretest_elapsed = int(elapsed)
 
-    # 横並び：左にブレインストーミング内容、右に英作文
+    # 横並び：左にブレインストーミング、右に英作文欄
     col1, col2 = st.columns(2)
 
     with col1:
@@ -97,7 +97,7 @@ elif st.session_state.step == 2:
         st.markdown(
             f"""
             <div style="
-                height: 332px;
+                height: 360px;
                 overflow-y: auto;
                 padding: 10px;
                 border: 1px solid #ccc;
@@ -105,8 +105,9 @@ elif st.session_state.step == 2:
                 background-color: white;
                 font-family: sans-serif;
                 line-height: 1.5;
+                white-space: pre-wrap;
             ">
-                {st.session_state.brainstorm_text.replace('\n', '<br>')}
+                {st.session_state.brainstorm_text.replace('<', '&lt;').replace('>', '&gt;')}
             </div>
             """,
             unsafe_allow_html=True
@@ -117,7 +118,7 @@ elif st.session_state.step == 2:
         st.session_state.pretest_text = st.text_area(
             label="",
             value=st.session_state.pretest_text,
-            height=300,  # text_areaはこの高さに
+            height=300,
             disabled=not st.session_state.pretest_timer_started
         )
         st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
