@@ -100,14 +100,22 @@ elif st.session_state.step == 2:
             unsafe_allow_html=True
         )
     with col2:
-        st.markdown("### 英作文を書いてください：")
-        st.session_state.pretest_text = st.text_area(
-            label=" ",
-            value=st.session_state.pretest_text,
-            height=300,
-            disabled=not st.session_state.pretest_timer_started
-        )
-        st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
+        st.markdown(
+        """
+        <div style='font-size: 20px; font-weight: bold; margin-bottom: 0px;'>
+            英作文を書いてください：
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    st.session_state.pretest_text = st.text_area(
+        label=" ",  # ラベルの余白を極小化
+        value=st.session_state.pretest_text,
+        height=300,
+        disabled=not st.session_state.pretest_timer_started
+    )
+    st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
+
 
     if st.button("次へ (③ WCF)"):
         st.session_state.step = 3
