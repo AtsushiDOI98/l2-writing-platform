@@ -88,18 +88,17 @@ elif st.session_state.step == 2:
         st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
         st.session_state.pretest_elapsed = int(elapsed)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("### ブレインストーミングの内容")
-        st.write(st.session_state.brainstorm_text)
-    with col2:
-        st.session_state.pretest_text = st.text_area(
-            "英作文を書いてください：",
-            value=st.session_state.pretest_text,
-            height=300,
-            disabled=not st.session_state.pretest_timer_started
-        )
-        st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
+    st.markdown("### ブレインストーミングの内容")
+    st.text_area("", value=st.session_state.brainstorm_text, height=200, disabled=True)
+
+    st.session_state.pretest_text = st.text_area(
+        "英作文を書いてください：",
+        value=st.session_state.pretest_text,
+        height=300,
+        disabled=not st.session_state.pretest_timer_started
+    )
+    st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
+
     if st.button("次へ (③ WCF)"):
         st.session_state.step = 3
 
@@ -121,7 +120,9 @@ elif st.session_state.step == 3:
             except Exception as e:
                 st.error(f"エラーが発生しました: {e}")
                 st.stop()
-    st.text_area("AIによるフィードバック", st.session_state.wcf_text, height=300, disabled=True)
+
+    st.markdown("#### AIによるフィードバック")
+    st.text_area("", st.session_state.wcf_text, height=300, disabled=True)
     if st.button("次へ (④ Written Language)"):
         st.session_state.step = 4
 
@@ -146,6 +147,7 @@ elif st.session_state.step == 4:
         disabled=st.session_state.wl_start_time is None
     )
     st.session_state.wl_elapsed = int(time.time() - st.session_state.wl_start_time)
+
     if st.button("次へ (⑤ Post-Test)"):
         st.session_state.step = 5
 
@@ -172,6 +174,7 @@ elif st.session_state.step == 5 and not st.session_state.finished:
         disabled=not st.session_state.posttest_timer_started
     )
     st.markdown(f"単語数: {len(st.session_state.posttest_text.split())} / 文字数: {len(st.session_state.posttest_text)}")
+
     if st.button("完了"):
         st.session_state.finished = True
 
@@ -192,8 +195,8 @@ elif st.session_state.finished:
             "Pre-Test(sec)": [st.session_state.pretest_elapsed],
             "Reflection(sec)": [st.session_state.wl_elapsed],
             "Post-Test(sec)": [st.session_state.posttest_elapsed],
-            "Pre-Test(chars)": [len(st.session_state.pretest_text)],
-            "Post-Test(chars)": [len(st.session_state.posttest_text)]
+            "Pre-Test(words)": [len(st.session_state.pretest_text.split())],
+            "Post-Test(words)": [len(st.session_state.posttest_text.split())]
         })
         out = BytesIO()
         with pd.ExcelWriter(out, engine="openpyxl") as writer:
