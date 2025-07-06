@@ -95,8 +95,21 @@ elif st.session_state.step == 2:
     with col1:
         st.markdown("### ブレインストーミングの内容")
         st.markdown(
-        f"<div style='height:300px; overflow-y:auto; padding:10px; border:1px solid #ccc; border-radius:5px; background-color:white;'>{st.session_state.brainstorm_text.replace('\n','<br>')}</div>",
-        unsafe_allow_html=True
+            f"""
+            <div style="
+                height: 300px;
+                overflow-y: auto;
+                padding: 10px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                background-color: white;
+                font-family: sans-serif;
+                line-height: 1.5;
+            ">
+                {st.session_state.brainstorm_text.replace('\n', '<br>')}
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
     with col2:
@@ -112,10 +125,10 @@ elif st.session_state.step == 2:
     if st.button("次へ (③ WCF)"):
         st.session_state.step = 3
 
-
 # Step 3: WCF
 elif st.session_state.step == 3:
     st.subheader("③ Written Corrective Feedback (WCF)")
+    
     if st.session_state.wcf_text == "":
         with st.spinner("AIによるフィードバックを生成中..."):
             try:
@@ -133,9 +146,28 @@ elif st.session_state.step == 3:
                 st.stop()
 
     st.markdown("#### AIによるフィードバック")
-    st.text_area("", st.session_state.wcf_text, height=300, disabled=True)
+
+    st.markdown(
+        f"""
+        <div style="
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: white;
+            font-family: sans-serif;
+            line-height: 1.6;
+        ">
+            {st.session_state.wcf_text.replace('\n', '<br>')}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     if st.button("次へ (④ Written Language)"):
         st.session_state.step = 4
+
 
 # Step 4: WL
 elif st.session_state.step == 4:
