@@ -118,6 +118,7 @@ elif st.session_state.step == 2:
     with col2:
         st.markdown("### 英作文を書いてください：")
         st.session_state.pretest_text = st.text_area(
+            label=" ",
             value=st.session_state.pretest_text,
             height=300,
             disabled=not st.session_state.pretest_timer_started
