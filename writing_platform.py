@@ -89,7 +89,6 @@ elif st.session_state.step == 2:
         st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
         st.session_state.pretest_elapsed = int(elapsed)
 
-    # 横並び：左にブレインストーミング、右に英作文
     col1, col2 = st.columns(2)
 
     with col1:
@@ -97,9 +96,9 @@ elif st.session_state.step == 2:
             """
             <div style='
                 font-weight: bold;
-                font-size: 20px;
-                margin-bottom: 0px;
-                line-height: 1.2;
+                font-size: 24px;
+                margin-bottom: 4px;
+                line-height: 1.3;
             '>ブレインストーミングの内容</div>
             """,
             unsafe_allow_html=True
@@ -107,8 +106,7 @@ elif st.session_state.step == 2:
         st.markdown(
             f"""
             <div style='
-                height: 300px;
-                margin-top: 4px;
+                height: 350px;
                 padding: 10px;
                 border: 1px solid #ccc;
                 border-radius: 5px;
@@ -130,22 +128,21 @@ elif st.session_state.step == 2:
             """
             <div style='
                 font-weight: bold;
-                font-size: 20px;
-                margin-bottom: 0px;
-                line-height: 1.2;
+                font-size: 24px;
+                margin-bottom: 4px;
+                line-height: 1.3;
             '>英作文を書いてください：</div>
             """,
             unsafe_allow_html=True
         )
-        # 入力欄直下に来るようにmarginを制御
         st.session_state.pretest_text = st.text_area(
-            label=" ",  # 空文字でlabel行を消す
+            label=" ",  # label消して余白最小限に
             value=st.session_state.pretest_text,
-            height=300,
+            height=350,
             disabled=not st.session_state.pretest_timer_started
         )
         st.markdown(
-            f"<div style='margin-top: -5px;'>単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}</div>",
+            f"<div style='margin-top: -4px;'>単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}</div>",
             unsafe_allow_html=True
         )
 
