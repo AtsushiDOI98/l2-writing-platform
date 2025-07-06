@@ -73,7 +73,7 @@ elif st.session_state.step == 1:
     if st.button("次へ (② Pre-Test)"):
         st.session_state.step = 2
 
-# Step 2: Pre-Test
+# # Step 2: Pre-Test
 elif st.session_state.step == 2:
     st.subheader("② Writing Pre-Test (30分)")
     st_autorefresh(interval=1000, key="refresh2")
@@ -97,7 +97,7 @@ elif st.session_state.step == 2:
         st.markdown(
             f"""
             <div style="
-                height: 300px;
+                height: 332px;
                 overflow-y: auto;
                 padding: 10px;
                 border: 1px solid #ccc;
@@ -117,7 +117,7 @@ elif st.session_state.step == 2:
         st.session_state.pretest_text = st.text_area(
             label="",
             value=st.session_state.pretest_text,
-            height=300,
+            height=300,  # text_areaはこの高さに
             disabled=not st.session_state.pretest_timer_started
         )
         st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
