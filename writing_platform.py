@@ -93,7 +93,12 @@ elif st.session_state.step == 2:
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("### ブレインストーミングの内容")
+        st.markdown(
+            """
+            <div style='font-weight: bold; font-size: 24px; margin-bottom: 4px;'>ブレインストーミングの内容</div>
+            """,
+            unsafe_allow_html=True
+        )
         st.markdown(
             f"""
             <div style='
@@ -116,21 +121,18 @@ elif st.session_state.step == 2:
         )
 
     with col2:
-        # ラベルとして見せるタイトル（余白なし）
         st.markdown(
             """
-            <div style='font-weight: bold; font-size: 20px; margin-bottom: 4px;'>英作文を書いてください：</div>
+            <div style='font-weight: bold; font-size: 24px; margin-bottom: 4px;'>英作文を書いてください：</div>
             """,
             unsafe_allow_html=True
         )
-        # テキストエリア（余白なし、上下対称のため height: 300px）
         st.session_state.pretest_text = st.text_area(
-            label=" ",  # label を空にすることで余計な隙間を消す
+            label=" ",
             value=st.session_state.pretest_text,
             height=300,
             disabled=not st.session_state.pretest_timer_started
         )
-
         st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
 
     if st.button("次へ (③ WCF)"):
