@@ -108,7 +108,7 @@ elif st.session_state.step == 2:
             f"""
             <div style='
                 height: 350px;
-                margin-right: 8px;
+                margin-right: 32px;
                 padding: 10px;
                 border: 1px solid #ccc;
                 border-radius: 5px;
