@@ -98,7 +98,7 @@ elif st.session_state.step == 2:
             <div style='
                 font-weight: bold;
                 font-size: 24px;
-                margin-bottom: 24px;
+                margin-bottom: 26px;
                 line-height: 1.3;
             '>ブレインストーミングの内容</div>
             """,
@@ -108,7 +108,7 @@ elif st.session_state.step == 2:
             f"""
             <div style='
                 height: 350px;
-                padding: 10px;
+                padding: 2px;
                 border: 1px solid #ccc;
                 border-radius: 5px;
                 background-color: white;
