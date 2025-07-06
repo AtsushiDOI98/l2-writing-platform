@@ -116,13 +116,14 @@ elif st.session_state.step == 2:
         )
 
     with col2:
-        st.markdown("### 英作文を書いてください：")
-        st.session_state.pretest_text = st.text_area(
-            label=None,
-            value=st.session_state.pretest_text,
-            height=300,
-            disabled=not st.session_state.pretest_timer_started
+        st.markdown("### 英作文を書いてください：")  # ラベル風のタイトル
+        st.text_area(
+           label=" ",  # ラベルの余白を最小限に
+           value=st.session_state.pretest_text,
+           height=300,
+           disabled=not st.session_state.pretest_timer_started
         )
+
         st.markdown(f"単語数: {len(st.session_state.pretest_text.split())} / 文字数: {len(st.session_state.pretest_text)}")
 
     if st.button("次へ (③ WCF)"):
