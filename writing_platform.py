@@ -76,18 +76,21 @@ elif st.session_state.step == 1:
 # Step 2: Pre-Test
 elif st.session_state.step == 2:
     st.subheader("② Writing Pre-Test (30分)")
-    st_autorefresh(interval=1000, key="refresh2")
+    
+    # 自動リフレッシュ：30秒以内の実行ごとに再描画
+    count = st_autorefresh(interval=1000, key="refresh2", limit=None)
 
     if not st.session_state.pretest_timer_started:
         if st.button("▶️ タイマーを開始 (30分)"):
             st.session_state.pretest_timer_started = True
             st.session_state.pretest_start_time = time.time()
     else:
-        elapsed = time.time() - st.session_state.pretest_start_time
-        remaining = max(0, 1800 - int(elapsed))
-        mins, secs = divmod(remaining, 60)
-        st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
-        st.session_state.pretest_elapsed = int(elapsed)
+        if st.session_state.pretest_start_time is not None:
+            elapsed = time.time() - st.session_state.pretest_start_time
+            remaining = max(0, 1800 - int(elapsed))
+            mins, secs = divmod(remaining, 60)
+            st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
+            st.session_state.pretest_elapsed = int(elapsed)
 
     # 横並び：左にブレインストーミング、右に英作文
     col1, col2 = st.columns(2)
