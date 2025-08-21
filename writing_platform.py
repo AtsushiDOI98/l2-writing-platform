@@ -47,21 +47,21 @@ if st.session_state.step == 0:
         if st.session_state.name.strip() and st.session_state.student_id.strip():
             st.session_state.step = 1
         else:
-            st.warning("⚠️ 名前と学籍番号の両方を入力してください。")
+            st.warning("名前と学籍番号の両方を入力してください。")
 
 # Step 1: ブレインストーミング
 elif st.session_state.step == 1:
     st.subheader("① ブレインストーミング (10分)")
     st_autorefresh(interval=1000, key="refresh1")
     if not st.session_state.brainstorm_timer_started:
-        if st.button("▶️ タイマーを開始 (10分)"):
+        if st.button("タイマーを開始 (10分)"):
             st.session_state.brainstorm_timer_started = True
             st.session_state.brainstorm_start_time = time.time()
     else:
         elapsed = time.time() - st.session_state.brainstorm_start_time
         remaining = max(0, 600 - int(elapsed))
         mins, secs = divmod(remaining, 60)
-        st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
+        st.info(f"残り時間: {mins:02d}:{secs:02d}")
         st.session_state.brainstorm_elapsed = int(elapsed)
 
     st.session_state.brainstorm_text = st.text_area(
@@ -81,7 +81,7 @@ elif st.session_state.step == 2:
     count = st_autorefresh(interval=1000, key="refresh2", limit=None)
 
     if not st.session_state.pretest_timer_started:
-        if st.button("▶️ タイマーを開始 (30分)"):
+        if st.button("タイマーを開始 (30分)"):
             st.session_state.pretest_timer_started = True
             st.session_state.pretest_start_time = time.time()
     else:
@@ -205,7 +205,7 @@ elif st.session_state.step == 4:
         )
     st.markdown("#### 考えたこと・気づいたこと")
     st.session_state.wl_text = st.text_area(
-        "フィードバックと自身の文を比較し、考えたことや気づいたことを書いてください。",
+        "フィードバックと自身の文を比較し、考えたことや気づいたことをできるだけ多く書いてください。",
         value=st.session_state.wl_text,
         height=200,
         disabled=st.session_state.wl_start_time is None
@@ -219,14 +219,14 @@ elif st.session_state.step == 5 and not st.session_state.finished:
     st.subheader("⑤ Writing Post-Test (30分)")
     st_autorefresh(interval=1000, key="refresh5")
     if not st.session_state.posttest_timer_started:
-        if st.button("▶️ タイマーを開始 (30分)"):
+        if st.button("タイマーを開始 (30分)"):
             st.session_state.posttest_timer_started = True
             st.session_state.posttest_start_time = time.time()
     else:
         elapsed = time.time() - st.session_state.posttest_start_time
         remaining = max(0, 1800 - int(elapsed))
         mins, secs = divmod(remaining, 60)
-        st.info(f"⏳ 残り時間: {mins:02d}:{secs:02d}")
+        st.info(f"残り時間: {mins:02d}:{secs:02d}")
         st.session_state.posttest_elapsed = int(elapsed)
     st.session_state.posttest_text = st.text_area(
         "英作文を書いてください：",
