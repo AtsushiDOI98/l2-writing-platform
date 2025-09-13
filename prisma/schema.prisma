@@ -1,0 +1,23 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Participant {
+  id          String   @id               // 学籍番号（ユニーク）
+  name        String
+  className   String
+  condition   String
+  currentStep Int      @default(0)       // 現在のステップ
+  brainstorm  String   @default("")
+  pretest     String   @default("")
+  wcfResult   String   @default("")
+  posttest    String   @default("")
+  survey      Json?
+  wlEntries   Json?
+  createdAt   DateTime @default(now())
+}
