@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   let assignedCondition = body.condition;
 
   try {
-    // --- 条件を自動割当 ---
+    // もしフロントから condition が送られてこなかったらサーバー側で自動割当
     if (!assignedCondition) {
       const counts = await prisma.participant.groupBy({
         by: ["condition"],
@@ -19,12 +19,10 @@ export async function POST(req: Request) {
         return { condition: c, count: found?._count.condition ?? 0 };
       });
 
-      // 人数が一番少ない条件を選択
       conditionCounts.sort((a, b) => a.count - b.count);
       assignedCondition = conditionCounts[0].condition;
     }
 
-    // --- DB に保存（アップサート）---
     const participant = await prisma.participant.upsert({
       where: { id: body.id },
       update: {
@@ -54,19 +52,20 @@ export async function POST(req: Request) {
       },
     });
 
-    // --- JSONに安全に変換 ---
+    // JSON に変換して返す（必ずシリアライズ可能にする）
     const safeParticipant = {
       ...participant,
       survey: participant.survey ? JSON.parse(JSON.stringify(participant.survey)) : {},
       wlEntries: participant.wlEntries ? JSON.parse(JSON.stringify(participant.wlEntries)) : [],
     };
 
-    // サーバーログに出力（Render で確認用）
-    console.log("API が返すデータ:", safeParticipant);
+    // ← 確認ログを追加
+    console.log("API return 直前:", safeParticipant);
 
     return NextResponse.json(safeParticipant);
   } catch (error) {
-    console.error("API エラー:", error);
+    console.error("API error:", error);
     return NextResponse.json({ error: "保存に失敗しました" }, { status: 500 });
   }
 }
+
