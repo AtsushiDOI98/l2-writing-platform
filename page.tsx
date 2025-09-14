@@ -13,7 +13,7 @@ type WLEntry = {
 
 export default function WritingPlatform() {
   // --- state 定義 ---
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [studentId, setStudentId] = useState("");
   const [className, setClassName] = useState("");
@@ -38,35 +38,26 @@ export default function WritingPlatform() {
 
   // --- localStorage に保存 ---
   useEffect(() => {
-    const state = {
-      step,
-      name,
-      studentId,
-      className,
-      condition,
-      brainstormText,
-      pretestText,
-      wcfText,
-      wlEntries,
-      posttestText,
-      surveyAnswers,
-    };
-    localStorage.setItem("writingPlatformState", JSON.stringify(state));
-  }, [
-    step,
-    name,
-    studentId,
-    className,
-    condition,
-    brainstormText,
-    pretestText,
-    wcfText,
-    wlEntries,
-    posttestText,
-    surveyAnswers,
-  ]);
+    if (step !== null) {
+      const state = {
+        step,
+        name,
+        studentId,
+        className,
+        condition,
+        brainstormText,
+        pretestText,
+        wcfText,
+        wlEntries,
+        posttestText,
+        surveyAnswers,
+      };
+      localStorage.setItem("writingPlatformState", JSON.stringify(state));
+    }
+  }, [step, name, studentId, className, condition, brainstormText, pretestText, wcfText, wlEntries, posttestText, surveyAnswers]);
 
-  // --- localStorage から復元 ---
+
+    // --- localStorage から復元 ---
   useEffect(() => {
     const saved = localStorage.getItem("writingPlatformState");
     if (saved) {
@@ -82,6 +73,8 @@ export default function WritingPlatform() {
       setWlEntries(parsed.wlEntries ?? []);
       setPosttestText(parsed.posttestText ?? "");
       setSurveyAnswers(parsed.surveyAnswers ?? {});
+    } else {
+      setStep(0); // ← 保存がなければ Step 0
     }
   }, []);
 
