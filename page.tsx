@@ -247,6 +247,7 @@ export default function WritingPlatform() {
             }),
           });
           const data = await res.json();
+          console.log("APIから受け取ったdata:", data);
 
           // --- DB の内容を state に復元 ---
           setCondition(data.condition ?? null);
