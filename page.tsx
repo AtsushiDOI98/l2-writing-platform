@@ -13,7 +13,7 @@ type WLEntry = {
 
 export default function WritingPlatform() {
   // --- state 定義 ---
-  const [step, setStep] = useState<number | null>(null);
+  const [step, setStep] = useState<number | null>(null); // ← 復元前は null
   const [name, setName] = useState("");
   const [studentId, setStudentId] = useState("");
   const [className, setClassName] = useState("");
@@ -36,6 +36,27 @@ export default function WritingPlatform() {
   const [wlElapsed, setWlElapsed] = useState(0);
   const [posttestElapsed, setPosttestElapsed] = useState(0);
 
+  // --- localStorage から復元 ---
+  useEffect(() => {
+    const saved = localStorage.getItem("writingPlatformState");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setStep(parsed.step ?? 0);
+      setName(parsed.name ?? "");
+      setStudentId(parsed.studentId ?? "");
+      setClassName(parsed.className ?? "");
+      setCondition(parsed.condition ?? null);
+      setBrainstormText(parsed.brainstormText ?? "");
+      setPretestText(parsed.pretestText ?? "");
+      setWcfText(parsed.wcfText ?? "");
+      setWlEntries(parsed.wlEntries ?? []);
+      setPosttestText(parsed.posttestText ?? "");
+      setSurveyAnswers(parsed.surveyAnswers ?? {});
+    } else {
+      setStep(0); // 保存データがなければ最初から
+    }
+  }, []);
+
   // --- localStorage に保存 ---
   useEffect(() => {
     if (step !== null) {
@@ -54,29 +75,19 @@ export default function WritingPlatform() {
       };
       localStorage.setItem("writingPlatformState", JSON.stringify(state));
     }
-  }, [step, name, studentId, className, condition, brainstormText, pretestText, wcfText, wlEntries, posttestText, surveyAnswers]);
-
-
-    // --- localStorage から復元 ---
-  useEffect(() => {
-    const saved = localStorage.getItem("writingPlatformState");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setStep(parsed.step ?? 0);
-      setName(parsed.name ?? "");
-      setStudentId(parsed.studentId ?? "");
-      setClassName(parsed.className ?? "");
-      setCondition(parsed.condition ?? null);
-      setBrainstormText(parsed.brainstormText ?? "");
-      setPretestText(parsed.pretestText ?? "");
-      setWcfText(parsed.wcfText ?? "");
-      setWlEntries(parsed.wlEntries ?? []);
-      setPosttestText(parsed.posttestText ?? "");
-      setSurveyAnswers(parsed.surveyAnswers ?? {});
-    } else {
-      setStep(0); // ← 保存がなければ Step 0
-    }
-  }, []);
+  }, [
+    step,
+    name,
+    studentId,
+    className,
+    condition,
+    brainstormText,
+    pretestText,
+    wcfText,
+    wlEntries,
+    posttestText,
+    surveyAnswers,
+  ]);
 
   // --- タイマー ---
   useEffect(() => {
@@ -89,7 +100,7 @@ export default function WritingPlatform() {
     return () => clearInterval(timer);
   }, [brainstormStart, pretestStart, wlStart, posttestStart]);
 
-  // --- API保存処理 ---
+  // --- API保存処理（DB用） ---
   const saveProgress = async () => {
     if (!studentId) return;
     try {
@@ -192,7 +203,7 @@ export default function WritingPlatform() {
     XLSX.writeFile(wb, `${className}_${studentId}_${name}.xlsx`);
   };
 
-  // --- アンケート ---
+  // --- アンケート質問 ---
   const surveyQuestions: { [key: string]: string[] } = {
     行動的エンゲージメント: [
       "1.課題をうまくこなすために、必要以上のことをしようとした。",
@@ -230,6 +241,11 @@ export default function WritingPlatform() {
       "5.課題を正しくできているか確認するために、先生にフィードバックを求めた。",
     ],
   };
+
+  // --- ローディング中 ---
+  if (step === null) {
+    return <div className="p-6 text-lg">復元中です...</div>;
+  }
 
   // --- UI ---
   return (
