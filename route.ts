@@ -59,13 +59,9 @@ export async function POST(req: Request) {
       wlEntries: participant.wlEntries ? JSON.parse(JSON.stringify(participant.wlEntries)) : [],
     };
 
-    // ← 確認ログを追加
-    console.log("API return 直前:", safeParticipant);
-
     return NextResponse.json(safeParticipant);
   } catch (error) {
     console.error("API error:", error);
     return NextResponse.json({ error: "保存に失敗しました" }, { status: 500 });
   }
 }
-
