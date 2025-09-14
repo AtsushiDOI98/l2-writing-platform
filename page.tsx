@@ -243,23 +243,17 @@ export default function WritingPlatform() {
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">L2 Writing Platform</h1>
 
-      {/* Step 0 */}
+      {/* Step 0: ユーザー入力 */}
       {step === 0 && (
         <div>
-          <h2 className="text-2xl font-semibold mb-4">
-            氏名、学籍番号、授業名を入力してください
-          </h2>
-
+          <h2 className="text-2xl font-semibold mb-4">氏名、学籍番号、授業名を入力してください</h2>
           <p className="mb-4 text-gray-700">
             <strong>
-              {"※途中でページを閉じたり更新した場合は、"}
-              <br />
-              {"最初の画面で必ず同じ氏名・学籍番号・授業名を入力してください。"}
-              <br />
+              {"※途中でページを閉じたり更新した場合は、"}<br />
+              {"最初の画面で必ず同じ氏名・学籍番号・授業名を入力してください。"}<br />
               {"これまでの作業内容が復元され、続きから再開できます。"}
             </strong>
           </p>
-
           <input
             className="border p-2 w-full mb-2"
             placeholder="名前"
@@ -283,33 +277,11 @@ export default function WritingPlatform() {
             <option value="木曜3限">木曜3限</option>
             <option value="木曜4限">木曜4限</option>
           </select>
-
           <button
             className="bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={async () => {
+            onClick={() => {
               if (name.trim() && studentId.trim() && className !== "") {
-                const res = await fetch("/api/participant", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    id: studentId,
-                    name,
-                    className,
-                    currentStep: 0,
-                  }),
-                });
-                const data = await res.json();
-                console.log("APIから受け取ったdata:", data);
-
-                // --- DB の内容を state に復元 ---
-                setCondition(data.condition ?? null);
-                setStep(data.currentStep ?? 1);
-                setBrainstormText(data.brainstorm ?? "");
-                setPretestText(data.pretest ?? "");
-                setWcfText(data.wcfResult ?? "");
-                setPosttestText(data.posttest ?? "");
-                setSurveyAnswers(data.survey ?? {});
-                setWlEntries(data.wlEntries ?? []);
+                setStep(1);
               } else {
                 alert("氏名、学籍番号、授業名をすべて入力してください。");
               }
