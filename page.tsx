@@ -11,21 +11,53 @@ type WLEntry = {
   説明: string;
 };
 
+// --- localStorage から復元するヘルパー関数 ---
+function loadState<T>(key: keyof typeof defaultState, fallback: T): T {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("writingPlatformState");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed[key] !== undefined) {
+        return parsed[key];
+      }
+    }
+  }
+  return fallback;
+}
+
+// --- デフォルト state ---
+const defaultState = {
+  step: 0,
+  name: "",
+  studentId: "",
+  className: "",
+  condition: null as string | null,
+  brainstormText: "",
+  pretestText: "",
+  wcfText: "",
+  wlEntries: [] as WLEntry[],
+  posttestText: "",
+  surveyAnswers: {} as { [key: string]: number },
+};
+
 export default function WritingPlatform() {
-  // --- state 定義 ---
-  const [step, setStep] = useState<number | null>(null); // ← 復元前は null
-  const [name, setName] = useState("");
-  const [studentId, setStudentId] = useState("");
-  const [className, setClassName] = useState("");
-  const [condition, setCondition] = useState<string | null>(null);
+  // --- state 定義 (lazy initializer で復元) ---
+  const [step, setStep] = useState<number>(() => loadState("step", 0));
+  const [name, setName] = useState<string>(() => loadState("name", ""));
+  const [studentId, setStudentId] = useState<string>(() => loadState("studentId", ""));
+  const [className, setClassName] = useState<string>(() => loadState("className", ""));
+  const [condition, setCondition] = useState<string | null>(() => loadState("condition", null));
 
-  const [brainstormText, setBrainstormText] = useState("");
-  const [pretestText, setPretestText] = useState("");
-  const [wcfText, setWcfText] = useState("");
-  const [wlEntries, setWlEntries] = useState<WLEntry[]>([]);
-  const [posttestText, setPosttestText] = useState("");
-  const [surveyAnswers, setSurveyAnswers] = useState<{ [key: string]: number }>({});
+  const [brainstormText, setBrainstormText] = useState<string>(() => loadState("brainstormText", ""));
+  const [pretestText, setPretestText] = useState<string>(() => loadState("pretestText", ""));
+  const [wcfText, setWcfText] = useState<string>(() => loadState("wcfText", ""));
+  const [wlEntries, setWlEntries] = useState<WLEntry[]>(() => loadState("wlEntries", []));
+  const [posttestText, setPosttestText] = useState<string>(() => loadState("posttestText", ""));
+  const [surveyAnswers, setSurveyAnswers] = useState<{ [key: string]: number }>(
+    () => loadState("surveyAnswers", {})
+  );
 
+  // --- タイマー用 ---
   const [brainstormStart, setBrainstormStart] = useState<number | null>(null);
   const [pretestStart, setPretestStart] = useState<number | null>(null);
   const [wlStart, setWlStart] = useState<number | null>(null);
@@ -36,45 +68,22 @@ export default function WritingPlatform() {
   const [wlElapsed, setWlElapsed] = useState(0);
   const [posttestElapsed, setPosttestElapsed] = useState(0);
 
-  // --- localStorage から復元 ---
+  // --- state を localStorage に保存 ---
   useEffect(() => {
-    const saved = localStorage.getItem("writingPlatformState");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setStep(parsed.step ?? 0);
-      setName(parsed.name ?? "");
-      setStudentId(parsed.studentId ?? "");
-      setClassName(parsed.className ?? "");
-      setCondition(parsed.condition ?? null);
-      setBrainstormText(parsed.brainstormText ?? "");
-      setPretestText(parsed.pretestText ?? "");
-      setWcfText(parsed.wcfText ?? "");
-      setWlEntries(parsed.wlEntries ?? []);
-      setPosttestText(parsed.posttestText ?? "");
-      setSurveyAnswers(parsed.surveyAnswers ?? {});
-    } else {
-      setStep(0); // 保存データがなければ最初から
-    }
-  }, []);
-
-  // --- localStorage に保存 ---
-  useEffect(() => {
-    if (step !== null) {
-      const state = {
-        step,
-        name,
-        studentId,
-        className,
-        condition,
-        brainstormText,
-        pretestText,
-        wcfText,
-        wlEntries,
-        posttestText,
-        surveyAnswers,
-      };
-      localStorage.setItem("writingPlatformState", JSON.stringify(state));
-    }
+    const state = {
+      step,
+      name,
+      studentId,
+      className,
+      condition,
+      brainstormText,
+      pretestText,
+      wcfText,
+      wlEntries,
+      posttestText,
+      surveyAnswers,
+    };
+    localStorage.setItem("writingPlatformState", JSON.stringify(state));
   }, [
     step,
     name,
@@ -100,7 +109,7 @@ export default function WritingPlatform() {
     return () => clearInterval(timer);
   }, [brainstormStart, pretestStart, wlStart, posttestStart]);
 
-  // --- API保存処理（DB用） ---
+  // --- API保存処理 ---
   const saveProgress = async () => {
     if (!studentId) return;
     try {
@@ -203,7 +212,7 @@ export default function WritingPlatform() {
     XLSX.writeFile(wb, `${className}_${studentId}_${name}.xlsx`);
   };
 
-  // --- アンケート質問 ---
+  // --- アンケート ---
   const surveyQuestions: { [key: string]: string[] } = {
     行動的エンゲージメント: [
       "1.課題をうまくこなすために、必要以上のことをしようとした。",
@@ -242,60 +251,36 @@ export default function WritingPlatform() {
     ],
   };
 
-  // --- ローディング中 ---
-  if (step === null) {
-    return <div className="p-6 text-lg">復元中です...</div>;
-  }
-
   // --- UI ---
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">L2 Writing Platform</h1>
 
-      {/* Step 0: ユーザー入力 */}
+      {/* Step 0 */}
       {step === 0 && (
         <div>
-          <h2 className="text-2xl font-semibold mb-4">氏名、学籍番号、授業名を入力してください</h2>
+          <h2 className="text-2xl font-semibold mb-4">
+            氏名、学籍番号、授業名を入力してください
+          </h2>
           <p className="mb-4 text-gray-700">
             <strong>
-              {"※途中でページを閉じたり更新した場合は、"}<br />
-              {"最初の画面で必ず同じ氏名・学籍番号・授業名を入力してください。"}<br />
+              {"※途中でページを閉じたり更新した場合は、"}
+              <br />
+              {"最初の画面で必ず同じ氏名・学籍番号・授業名を入力してください。"}
+              <br />
               {"これまでの作業内容が復元され、続きから再開できます。"}
             </strong>
           </p>
-          <input
-            className="border p-2 w-full mb-2"
-            placeholder="名前"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            className="border p-2 w-full mb-2"
-            placeholder="学籍番号"
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-          />
-          <select
-            className="border p-2 w-full mb-4"
-            value={className}
-            onChange={(e) => setClassName(e.target.value)}
-          >
+          <input className="border p-2 w-full mb-2" placeholder="名前" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="border p-2 w-full mb-2" placeholder="学籍番号" value={studentId} onChange={(e) => setStudentId(e.target.value)} />
+          <select className="border p-2 w-full mb-4" value={className} onChange={(e) => setClassName(e.target.value)}>
             <option value="">授業名を選択してください</option>
             <option value="月曜3限">月曜3限</option>
             <option value="月曜4限">月曜4限</option>
             <option value="木曜3限">木曜3限</option>
             <option value="木曜4限">木曜4限</option>
           </select>
-          <button
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={() => {
-              if (name.trim() && studentId.trim() && className !== "") {
-                setStep(1);
-              } else {
-                alert("氏名、学籍番号、授業名をすべて入力してください。");
-              }
-            }}
-          >
+          <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setStep(1)}>
             次へ (指示ページ)
           </button>
         </div>
@@ -312,7 +297,7 @@ export default function WritingPlatform() {
             <li>英作文タスク (30分)</li>
             <li>アンケート</li>
           </ol>
-          <button className="mt-6 bg-blue-500 text-white px-4 py-2 rounded" onClick={async () => { await saveProgress(); setStep(2); setBrainstormStart(Date.now()); }}>
+          <button className="mt-6 bg-blue-500 text-white px-4 py-2 rounded" onClick={() => { setStep(2); setBrainstormStart(Date.now()); }}>
             ブレインストーミングを開始
           </button>
         </div>
@@ -327,9 +312,8 @@ export default function WritingPlatform() {
               ? `${Math.floor((600 - brainstormElapsed) / 60)}:${String((600 - brainstormElapsed) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
-          <p className="mb-4">別紙に記載されている英作文タスクに取り組むにあたり、自身の考えをまとめましょう。以下にアイデアを書いてください。</p>
           <textarea className="border p-2 w-full h-96" value={brainstormText} onChange={(e) => setBrainstormText(e.target.value)} />
-          <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={async () => { await saveProgress(); setStep(3); setPretestStart(Date.now()); }}>
+          <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={() => { setStep(3); setPretestStart(Date.now()); }}>
             次へ (英作文タスク)
           </button>
         </div>
@@ -345,31 +329,15 @@ export default function WritingPlatform() {
               ? `${Math.floor((1800 - pretestElapsed) / 60)}:${String((1800 - pretestElapsed) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-2">ブレインストーミングの内容</h3>
-              <div className="border p-2 h-96 overflow-y-auto whitespace-pre-line bg-white">
-                {brainstormText}
-              </div>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">英作文を書いてください</h3>
-              <textarea
-                className="border p-2 w-full h-96"
-                value={pretestText}
-                onChange={(e) => setPretestText(e.target.value)}
-              />
-              <p className="text-right mt-1 text-sm text-gray-500">単語数: {wordCount(pretestText)}</p>
-              <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={async () => { await saveProgress(); setStep(4); }}>
-                次へ (振り返り準備)
-              </button>
-            </div>
-          </div>
+          <textarea className="border p-2 w-full h-96" value={pretestText} onChange={(e) => setPretestText(e.target.value)} />
+          <p className="text-right mt-1 text-sm text-gray-500">単語数: {wordCount(pretestText)}</p>
+          <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setStep(4)}>
+            次へ (振り返り準備)
+          </button>
         </div>
       )}
 
-      {/* Step 5 */}
+      {/* Step 5 振り返り */}
       {step === 5 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">振り返り</h2>
@@ -409,7 +377,6 @@ export default function WritingPlatform() {
               </p>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <h3 className="font-semibold mb-2">元の文 (Pre-Test)</h3>
@@ -420,7 +387,6 @@ export default function WritingPlatform() {
               <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{wcfText}</div>
             </div>
           </div>
-
           <div className="mb-6">
             <div className="grid grid-cols-4 gap-2 mb-2">
               <input id="err" className="border p-1" placeholder="誤り" />
@@ -435,8 +401,7 @@ export default function WritingPlatform() {
               </select>
               <input id="exp" className="border p-1" placeholder="説明" />
             </div>
-            <button
-              className="bg-green-500 text-white px-2 py-1 rounded"
+            <button className="bg-green-500 text-white px-2 py-1 rounded"
               onClick={() => {
                 const err = (document.getElementById("err") as HTMLInputElement).value;
                 const cor = (document.getElementById("cor") as HTMLInputElement).value;
@@ -449,12 +414,8 @@ export default function WritingPlatform() {
                   (document.getElementById("code") as HTMLSelectElement).value = "";
                   (document.getElementById("exp") as HTMLInputElement).value = "";
                 }
-              }}
-            >
-              ➕ Add
-            </button>
+              }}>➕ Add</button>
           </div>
-
           {wlEntries.length > 0 && (
             <table className="table-auto border-collapse border w-full text-sm mb-6">
               <thead>
@@ -477,8 +438,7 @@ export default function WritingPlatform() {
               </tbody>
             </table>
           )}
-
-          <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={async () => { await saveProgress(); setStep(6); setPosttestStart(Date.now()); }}>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => { setStep(6); setPosttestStart(Date.now()); }}>
             次へ (英作文タスク)
           </button>
         </div>
@@ -488,44 +448,20 @@ export default function WritingPlatform() {
       {step === 6 && (
         <div>
           <h3 className="font-semibold mb-2">英作文タスク (30分)</h3>
-          <p className="mb-4 font-semibold">
-            指示: 自身の書いた英作文を必要に応じて修正し、書き直してください。
-          </p>
-          <p className="mb-4 text-gray-600">
-            残り時間:{" "}
-            {Math.max(0, 1800 - posttestElapsed) > 0
-              ? `${Math.floor((1800 - posttestElapsed) / 60)}:${String((1800 - posttestElapsed) % 60).padStart(2, "0")}`
-              : "00:00"}
-          </p>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-2">元の文 (Pre-Test)</h3>
-              <div className="border p-2 h-96 overflow-y-auto whitespace-pre-line bg-white">{pretestText}</div>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">英作文を書いてください</h3>
-              <textarea
-                className="border p-2 w-full h-96"
-                value={posttestText}
-                onChange={(e) => setPosttestText(e.target.value)}
-              />
-              <p className="text-right mt-1 text-sm text-gray-500">単語数: {wordCount(posttestText)}</p>
-              <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={async () => { await saveProgress(); setStep(7); }}>
-                次へ (アンケート)
-              </button>
-            </div>
-          </div>
+          <p className="mb-4">指示: 自身の書いた英作文を必要に応じて修正し、書き直してください。</p>
+          <textarea className="border p-2 w-full h-96" value={posttestText} onChange={(e) => setPosttestText(e.target.value)} />
+          <p className="text-right mt-1 text-sm text-gray-500">単語数: {wordCount(posttestText)}</p>
+          <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setStep(7)}>
+            次へ (アンケート)
+          </button>
         </div>
       )}
 
-      {/* Step 7 */}
+      {/* Step 7 アンケート */}
       {step === 7 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">アンケート</h2>
-          <p>
-            以下の各項目について、<strong>1（全くそう思わない）～5（非常にそう思う）</strong> で答えてください。
-          </p>
+          <p>以下の各項目について、<strong>1（全くそう思わない）～5（非常にそう思う）</strong> で答えてください。</p>
           {Object.entries(surveyQuestions).map(([cat, qs]) => (
             <div key={cat} className="mt-6">
               <h3 className="text-lg font-semibold">{cat}</h3>
@@ -541,27 +477,17 @@ export default function WritingPlatform() {
               ))}
             </div>
           ))}
-          <button
-            className="mt-6 bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={async () => {
-              if (Object.keys(surveyAnswers).length < Object.values(surveyQuestions).flat().length) {
-                alert("すべての項目に回答してください。");
-              } else {
-                await saveProgress();
-                setStep(8);
-              }
-            }}
-          >
-            送信(次のページへ)
+          <button className="mt-6 bg-blue-600 text-white px-4 py-2 rounded" onClick={() => setStep(8)}>
+            送信 (次のページへ)
           </button>
         </div>
       )}
 
-      {/* Step 8 */}
+      {/* Step 8 完了 */}
       {step === 8 && (
         <div>
           <h2 className="text-2xl font-semibold">完了</h2>
-          <p className="mb-4">すべてのステップが完了しました。以下のボタンからデータをダウンロードし、担当者に提出してください。</p>
+          <p className="mb-4">すべてのステップが完了しました。以下のボタンからデータをダウンロードしてください。</p>
           <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={downloadExcel}>
             結果をExcelでダウンロード
           </button>
