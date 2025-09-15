@@ -11,53 +11,21 @@ type WLEntry = {
   説明: string;
 };
 
-// --- localStorage から復元するヘルパー関数 ---
-function loadState<T>(key: keyof typeof defaultState, fallback: T): T {
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem("writingPlatformState");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed[key] !== undefined) {
-        return parsed[key];
-      }
-    }
-  }
-  return fallback;
-}
-
-// --- デフォルト state ---
-const defaultState = {
-  step: 0,
-  name: "",
-  studentId: "",
-  className: "",
-  condition: null as string | null,
-  brainstormText: "",
-  pretestText: "",
-  wcfText: "",
-  wlEntries: [] as WLEntry[],
-  posttestText: "",
-  surveyAnswers: {} as { [key: string]: number },
-};
-
 export default function WritingPlatform() {
-  // --- state 定義 (lazy initializer で復元) ---
-  const [step, setStep] = useState<number>(() => loadState("step", 0));
-  const [name, setName] = useState<string>(() => loadState("name", ""));
-  const [studentId, setStudentId] = useState<string>(() => loadState("studentId", ""));
-  const [className, setClassName] = useState<string>(() => loadState("className", ""));
-  const [condition, setCondition] = useState<string | null>(() => loadState("condition", null));
+  // --- state 定義 ---
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [className, setClassName] = useState("");
+  const [condition, setCondition] = useState<string | null>(null);
 
-  const [brainstormText, setBrainstormText] = useState<string>(() => loadState("brainstormText", ""));
-  const [pretestText, setPretestText] = useState<string>(() => loadState("pretestText", ""));
-  const [wcfText, setWcfText] = useState<string>(() => loadState("wcfText", ""));
-  const [wlEntries, setWlEntries] = useState<WLEntry[]>(() => loadState("wlEntries", []));
-  const [posttestText, setPosttestText] = useState<string>(() => loadState("posttestText", ""));
-  const [surveyAnswers, setSurveyAnswers] = useState<{ [key: string]: number }>(
-    () => loadState("surveyAnswers", {})
-  );
+  const [brainstormText, setBrainstormText] = useState("");
+  const [pretestText, setPretestText] = useState("");
+  const [wcfText, setWcfText] = useState("");
+  const [wlEntries, setWlEntries] = useState<WLEntry[]>([]);
+  const [posttestText, setPosttestText] = useState("");
+  const [surveyAnswers, setSurveyAnswers] = useState<{ [key: string]: number }>({});
 
-  // --- タイマー用 ---
   const [brainstormStart, setBrainstormStart] = useState<number | null>(null);
   const [pretestStart, setPretestStart] = useState<number | null>(null);
   const [wlStart, setWlStart] = useState<number | null>(null);
@@ -68,7 +36,7 @@ export default function WritingPlatform() {
   const [wlElapsed, setWlElapsed] = useState(0);
   const [posttestElapsed, setPosttestElapsed] = useState(0);
 
-  // --- state を localStorage に保存 ---
+  // --- localStorage に保存 ---
   useEffect(() => {
     const state = {
       step,
@@ -97,6 +65,25 @@ export default function WritingPlatform() {
     posttestText,
     surveyAnswers,
   ]);
+
+  // --- localStorage から復元 ---
+  useEffect(() => {
+    const saved = localStorage.getItem("writingPlatformState");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setStep(parsed.step ?? 0);
+      setName(parsed.name ?? "");
+      setStudentId(parsed.studentId ?? "");
+      setClassName(parsed.className ?? "");
+      setCondition(parsed.condition ?? null);
+      setBrainstormText(parsed.brainstormText ?? "");
+      setPretestText(parsed.pretestText ?? "");
+      setWcfText(parsed.wcfText ?? "");
+      setWlEntries(parsed.wlEntries ?? []);
+      setPosttestText(parsed.posttestText ?? "");
+      setSurveyAnswers(parsed.surveyAnswers ?? {});
+    }
+  }, []);
 
   // --- タイマー ---
   useEffect(() => {
@@ -262,29 +249,75 @@ export default function WritingPlatform() {
           <h2 className="text-2xl font-semibold mb-4">
             氏名、学籍番号、授業名を入力してください
           </h2>
+
           <p className="mb-4 text-gray-700">
             <strong>
-              {"※途中でページを閉じたり更新した場合は、"}
+              {"※途中でページを閉じたり更新した場合でも、"}
               <br />
-              {"最初の画面で必ず同じ氏名・学籍番号・授業名を入力してください。"}
-              <br />
-              {"これまでの作業内容が復元され、続きから再開できます。"}
+              {"同じ氏名・学籍番号・授業名を入力すれば続きから再開できます。"}
             </strong>
           </p>
-          <input className="border p-2 w-full mb-2" placeholder="名前" value={name} onChange={(e) => setName(e.target.value)} />
-          <input className="border p-2 w-full mb-2" placeholder="学籍番号" value={studentId} onChange={(e) => setStudentId(e.target.value)} />
-          <select className="border p-2 w-full mb-4" value={className} onChange={(e) => setClassName(e.target.value)}>
+
+          <input
+            className="border p-2 w-full mb-2"
+            placeholder="名前"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            className="border p-2 w-full mb-2"
+            placeholder="学籍番号"
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
+          />
+          <select
+            className="border p-2 w-full mb-4"
+            value={className}
+            onChange={(e) => setClassName(e.target.value)}
+          >
             <option value="">授業名を選択してください</option>
             <option value="月曜3限">月曜3限</option>
             <option value="月曜4限">月曜4限</option>
             <option value="木曜3限">木曜3限</option>
             <option value="木曜4限">木曜4限</option>
           </select>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setStep(1)}>
+
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={async () => {
+              if (name.trim() && studentId.trim() && className !== "") {
+                const res = await fetch("/api/participant", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    id: studentId,
+                    name,
+                    className,
+                    currentStep: 0,
+                  }),
+                });
+                const data = await res.json();
+                console.log("APIから受け取ったdata:", data);
+
+                // --- DB の内容を state に復元 ---
+                setCondition(data.condition ?? null);
+                setStep(data.currentStep ?? 1);
+                setBrainstormText(data.brainstorm ?? "");
+                setPretestText(data.pretest ?? "");
+                setWcfText(data.wcfResult ?? "");
+                setPosttestText(data.posttest ?? "");
+                setSurveyAnswers(data.survey ?? {});
+                setWlEntries(data.wlEntries ?? []);
+              } else {
+                alert("氏名、学籍番号、授業名をすべて入力してください。");
+              }
+            }}
+          >
             次へ (指示ページ)
           </button>
         </div>
       )}
+
 
       {/* Step 1 */}
       {step === 1 && (
