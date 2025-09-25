@@ -2,7 +2,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
-import pdfParse from "pdf-parse";
 import fs from "fs/promises";
 import path from "path";
 
@@ -43,8 +42,10 @@ async function loadTaskContext(): Promise<string> {
     if (!(await fileExists(p))) return "";
     try {
       const buf = await fs.readFile(p);
+      const mod = await import("pdf-parse");
+      const pdfParse = (mod as any).default ?? (mod as any);
       const res = await pdfParse(Buffer.from(buf));
-      return (res as any).text || "";
+      return (res as any)?.text || "";
     } catch {
       return "";
     }
