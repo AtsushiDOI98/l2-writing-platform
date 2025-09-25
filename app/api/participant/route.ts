@@ -13,14 +13,12 @@ export async function POST(req: Request) {
         _count: { condition: true },
       });
 
-      // 3条件のカウントを取得（存在しない条件は0で補完）
       const conditions = ["Control", "Model text", "AI-WCF"];
       const conditionCounts = conditions.map((c) => {
         const found = counts.find((item) => item.condition === c);
         return { condition: c, count: found?._count.condition ?? 0 };
       });
 
-      // 一番人数が少ない条件を選択
       conditionCounts.sort((a, b) => a.count - b.count);
       assignedCondition = conditionCounts[0].condition;
     }
@@ -37,7 +35,7 @@ export async function POST(req: Request) {
         wcfResult: body.wcfResult || "",
         posttest: body.posttest || "",
         survey: body.survey || {},
-        wlEntries: body.wlEntries || {},
+        wlEntries: body.wlEntries || [],
       },
       create: {
         id: body.id,
@@ -50,13 +48,20 @@ export async function POST(req: Request) {
         wcfResult: body.wcfResult || "",
         posttest: body.posttest || "",
         survey: body.survey || {},
-        wlEntries: body.wlEntries || {},
+        wlEntries: body.wlEntries || [],
       },
     });
 
-    return NextResponse.json(participant);
+    // JSON に変換して返す（必ずシリアライズ可能にする）
+    const safeParticipant = {
+      ...participant,
+      survey: participant.survey ? JSON.parse(JSON.stringify(participant.survey)) : {},
+      wlEntries: participant.wlEntries ? JSON.parse(JSON.stringify(participant.wlEntries)) : [],
+    };
+
+    return NextResponse.json(safeParticipant);
   } catch (error) {
-    console.error(error);
+    console.error("API error:", error);
     return NextResponse.json({ error: "保存に失敗しました" }, { status: 500 });
   }
 }

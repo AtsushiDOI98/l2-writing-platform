@@ -1,7 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import * as XLSX from "xlsx";
+
+// --- 型定義 ---
+type WLEntry = {
+  誤り: string;
+  修正: string;
+  コード: string;
+  説明: string;
+};
 
 export default function WritingPlatform() {
   // --- state 定義 ---
@@ -14,10 +22,11 @@ export default function WritingPlatform() {
   const [brainstormText, setBrainstormText] = useState("");
   const [pretestText, setPretestText] = useState("");
   const [wcfText, setWcfText] = useState("");
-  const [wlEntries, setWlEntries] = useState<any[]>([]);
+  const [wlEntries, setWlEntries] = useState<WLEntry[]>([]);
   const [posttestText, setPosttestText] = useState("");
   const [surveyAnswers, setSurveyAnswers] = useState<{ [key: string]: number }>({});
 
+  // --- 各ステップ開始時間と経過時間 ---
   const [brainstormStart, setBrainstormStart] = useState<number | null>(null);
   const [pretestStart, setPretestStart] = useState<number | null>(null);
   const [wlStart, setWlStart] = useState<number | null>(null);
@@ -28,13 +37,80 @@ export default function WritingPlatform() {
   const [wlElapsed, setWlElapsed] = useState(0);
   const [posttestElapsed, setPosttestElapsed] = useState(0);
 
-  // --- タイマー ---
+  // --- タイマー用リアルタイム秒数 ---
+  const [brainstormTimer, setBrainstormTimer] = useState(0);
+  const [pretestTimer, setPretestTimer] = useState(0);
+  const [wlTimer, setWlTimer] = useState(0);
+  const [posttestTimer, setPosttestTimer] = useState(0);
+
+  // --- localStorage に保存 ---
+  useEffect(() => {
+    const state = {
+      step,
+      name,
+      studentId,
+      className,
+      condition,
+      brainstormText,
+      pretestText,
+      wcfText,
+      wlEntries,
+      posttestText,
+      surveyAnswers,
+      brainstormElapsed,
+      pretestElapsed,
+      wlElapsed,
+      posttestElapsed,
+    };
+    localStorage.setItem("writingPlatformState", JSON.stringify(state));
+  }, [
+    step,
+    name,
+    studentId,
+    className,
+    condition,
+    brainstormText,
+    pretestText,
+    wcfText,
+    wlEntries,
+    posttestText,
+    surveyAnswers,
+    brainstormElapsed,
+    pretestElapsed,
+    wlElapsed,
+    posttestElapsed,
+  ]);
+
+  // --- localStorage から復元 ---
+  useEffect(() => {
+    const saved = localStorage.getItem("writingPlatformState");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setStep(parsed.step ?? 0);
+      setName(parsed.name ?? "");
+      setStudentId(parsed.studentId ?? "");
+      setClassName(parsed.className ?? "");
+      setCondition(parsed.condition ?? null);
+      setBrainstormText(parsed.brainstormText ?? "");
+      setPretestText(parsed.pretestText ?? "");
+      setWcfText(parsed.wcfText ?? "");
+      setWlEntries(parsed.wlEntries ?? []);
+      setPosttestText(parsed.posttestText ?? "");
+      setSurveyAnswers(parsed.surveyAnswers ?? {});
+      setBrainstormElapsed(parsed.brainstormElapsed ?? 0);
+      setPretestElapsed(parsed.pretestElapsed ?? 0);
+      setWlElapsed(parsed.wlElapsed ?? 0);
+      setPosttestElapsed(parsed.posttestElapsed ?? 0);
+    }
+  }, []);
+
+  // --- タイマー (残り時間をリアルタイムで更新) ---
   useEffect(() => {
     const timer = setInterval(() => {
-      if (brainstormStart) setBrainstormElapsed(Math.floor((Date.now() - brainstormStart) / 1000));
-      if (pretestStart) setPretestElapsed(Math.floor((Date.now() - pretestStart) / 1000));
-      if (wlStart) setWlElapsed(Math.floor((Date.now() - wlStart) / 1000));
-      if (posttestStart) setPosttestElapsed(Math.floor((Date.now() - posttestStart) / 1000));
+      if (brainstormStart) setBrainstormTimer(Math.floor((Date.now() - brainstormStart) / 1000));
+      if (pretestStart) setPretestTimer(Math.floor((Date.now() - pretestStart) / 1000));
+      if (wlStart) setWlTimer(Math.floor((Date.now() - wlStart) / 1000));
+      if (posttestStart) setPosttestTimer(Math.floor((Date.now() - posttestStart) / 1000));
     }, 1000);
     return () => clearInterval(timer);
   }, [brainstormStart, pretestStart, wlStart, posttestStart]);
@@ -58,6 +134,10 @@ export default function WritingPlatform() {
           posttest: posttestText,
           survey: surveyAnswers,
           wlEntries,
+          brainstormElapsed,
+          pretestElapsed,
+          wlElapsed,
+          posttestElapsed,
         }),
       });
     } catch (error) {
@@ -66,7 +146,7 @@ export default function WritingPlatform() {
   };
 
   // --- AI-WCF ---
-  const generateWCF = async () => {
+  const generateWCF = useCallback(async () => {
     try {
       const res = await fetch("/api/wcf", {
         method: "POST",
@@ -82,13 +162,13 @@ export default function WritingPlatform() {
     } catch {
       setWcfText("エラー: API呼び出しに失敗しました。");
     }
-  };
+  }, [pretestText]);
 
   // --- 条件処理 ---
   useEffect(() => {
     if (step === 4) {
       if (condition === "Control") {
-        setWcfText(pretestText);
+        setWcfText("");
         setStep(5);
         setWlStart(Date.now());
       } else if (condition === "Model text") {
@@ -104,7 +184,7 @@ export default function WritingPlatform() {
         });
       }
     }
-  }, [step, condition, pretestText, wcfText]);
+  }, [step, condition, pretestText, wcfText, generateWCF]);
 
   // --- 単語数 ---
   const wordCount = (text: string) => {
@@ -125,59 +205,69 @@ export default function WritingPlatform() {
         "⑤ Post-Test": posttestText,
         "Brainstorm(sec)": brainstormElapsed,
         "Pre-Test(sec)": pretestElapsed,
-        "Reflection(sec)": wlElapsed,
+        "Reflection(sec)": wlElapsed, // ✅ 時間のみ保持
         "Post-Test(sec)": posttestElapsed,
         "Pre-Test(words)": wordCount(pretestText),
         "Post-Test(words)": wordCount(posttestText),
       },
     ]);
-    const ws2: XLSX.WorkSheet = XLSX.utils.json_to_sheet(wlEntries);
+
     const ws3: XLSX.WorkSheet = XLSX.utils.json_to_sheet(
-      Object.entries(surveyAnswers).map(([q, a]) => ({ Question: q, Answer: a }))
+      Object.entries(surveyAnswers).map(([q, a]) => ({
+        Question: q,
+        Answer: a,
+      }))
     );
+
     const wb: XLSX.WorkBook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws1, "Writing Session");
-    XLSX.utils.book_append_sheet(wb, ws2, "Reflection");
     XLSX.utils.book_append_sheet(wb, ws3, "Survey");
     XLSX.writeFile(wb, `${className}_${studentId}_${name}.xlsx`);
   };
 
-  // --- アンケート ---
+  // --- アンケート質問 ---
   const surveyQuestions: { [key: string]: string[] } = {
-    行動的エンゲージメント: [
-      "1.課題をうまくこなすために、必要以上のことをしようとした。",
-      "2.集中を保ち、気が散らないように最善を尽くした。",
-      "3.課題を終えるために必要なだけの時間をかけた。",
-      "4.課題をやり遂げるためにできる限り努力した。",
-      "5.課題に積極的に取り組もうとした。",
-    ],
-    情緒的エンゲージメント: [
-      "1.課題をするのは楽しかった。",
-      "2.課題をしているとき、興味を感じた。",
-      "3.課題をすることで好奇心がかき立てられた。",
-      "4.課題をしているとき、楽しいと感じた。",
-      "5.課題をしているとき、熱意を感じた。",
-    ],
-    認知的エンゲージメント: [
-      "1.課題中に、重要な概念を自分の言葉で説明しようとした。",
-      "2.課題中に、自分の言葉で要約しようとした。",
-      "3.課題の内容を、既に知っていることと結び付けようとした。",
-      "4.課題を理解しやすくするために、自分で例を作ろうとした。",
-      "5.課題中に内容を繰り返したり、自分に問いかけたりした。",
-    ],
-    主体的エンゲージメント: [
-      "1.課題中に、自分に必要なことや望むことを先生に伝えた。",
-      "2.課題中に、自分の関心を先生に伝えた。",
-      "3.課題中に、自分の好みや意見を表明した。",
-      "4.学習の助けになるように、先生に質問をした。",
-      "5.必要なときには、先生に頼んだ。",
-    ],
-    社会的エンゲージメント: [
-      "1.課題を行う際に、先生に助けを求めた。",
-      "2.課題を行う際に、他の学生に助けを求めた。",
-      "3.課題をする間、先生とやり取りすることが重要だと感じた。",
-      "4.課題をする間、他の学生とやり取りすることが重要だと感じた。",
-      "5.課題を正しくできているか確認するために、先生にフィードバックを求めた。",
+    アンケート項目: [
+      "今行ったタスクは楽しかった。",
+      "課題中に内容を繰り返したり、自分に問いかけたりした。",
+      "課題を終えるために必要なだけの時間をかけた。",
+      "タスクがよく出来たと誇りに思い、嬉しくて胸がドキドキした。",
+      "課題中に、自分に必要なことや望むことを先生に伝えた。",
+      "今行ったタスクは楽しくて、参加していて元気が出た。",
+      "タスクを行っている時、相手にきちんと伝わるかドキドキした。",
+      "課題中に、自分の関心を先生に伝えた。",
+      "今行ったタスクが早く終わって欲しいとソワソワした。",
+      "今行ったタスクは、難しかった。",
+      "タスクで使った自分の英語は誇りに思えるものだ。",
+      "課題を行う際に、他の学生に助けを求めた。",
+      "学習の助けになるように、先生に質問をした。",
+      "今行ったタスクで不安を感じた。",
+      "タスクを行っている際、こんな退屈なタスクをやるよりも他にできることを考えていた。",
+      "タスク中、英語を間違えるのが心配だった。",
+      "タスク中に退屈さを感じた。",
+      "タスク中、英語を話すことに緊張した。",
+      "課題中に、自分の好みや意見を表明した。",
+      "タスクを達成したことを誇りに思っているので、意欲的に英語学習を続けられる。",
+      "課題を正しくできているか確認するために、先生にフィードバックを求めた。",
+      "今行ったタスクは、簡単だった。",
+      "今行ったタスクは、手ごわかった。",
+      "集中を保ち、気が散らないように最善を尽くした。",
+      "課題をやり遂げるためにできる限り努力した。",
+      "今行ったタスクは面白かったので、積極的に参加したくなった。",
+      "必要なときには、先生に頼んだ。",
+      "今行ったタスクはつまらなかった。",
+      "課題の内容を、既に知っていることと結び付けようとした。",
+      "課題を行う際に、先生に助けを求めた。",
+      "今行ったタスクは、楽だった。",
+      "課題中に、自分の言葉で要約しようとした。",
+      "課題をする間、先生とやり取りすることが重要だと感じた。",
+      "タスクを行っている自分を誇りに思った。",
+      "課題をうまくこなすために、必要以上のことをしようとした。",
+      "課題を理解しやすくするために、自分で例を作ろうとした。",
+      "課題に積極的に取り組もうとした。",
+      "課題をする間、他の学生とやり取りすることが重要だと感じた。",
+      "課題中に、重要な概念を自分の言葉で説明しようとした。",
+      "今行ったようなタスクをまた行うことが楽しみになった。",
     ],
   };
 
@@ -187,87 +277,60 @@ export default function WritingPlatform() {
       <h1 className="text-3xl font-bold mb-6">L2 Writing Platform</h1>
 
       {/* Step 0 */}
-{step === 0 && (
-  <div>
-    <h2 className="text-2xl font-semibold mb-4">
-      氏名、学籍番号、授業名を入力してください
-    </h2>
-
-    <p className="mb-4 text-gray-700 whitespace-pre-line">
-      <strong>
-        ※途中でページを閉じたり更新した場合は、
-        最初の画面で必ず同じ氏名・学籍番号・授業名を入力してください。{"\n"}
-        　これまでの作業内容が復元され、続きから再開できます。
-      </strong>
-    </p>
-
-    <input
-      className="border p-2 w-full mb-2"
-      placeholder="名前"
-      value={name}
-      onChange={(e) => setName(e.target.value)}
-    />
-    <input
-      className="border p-2 w-full mb-2"
-      placeholder="学籍番号"
-      value={studentId}
-      onChange={(e) => setStudentId(e.target.value)}
-    />
-    <select
-      className="border p-2 w-full mb-4"
-      value={className}
-      onChange={(e) => setClassName(e.target.value)}
-    >
-      <option value="">授業名を選択してください</option>
-      <option value="月曜3限">月曜3限</option>
-      <option value="月曜4限">月曜4限</option>
-      <option value="木曜3限">木曜3限</option>
-      <option value="木曜4限">木曜4限</option>
-    </select>
-
-    <button
-      className="bg-blue-500 text-white px-4 py-2 rounded"
-      onClick={async () => {
-        if (name.trim() && studentId.trim() && className !== "") {
-          try {
-            const res = await fetch("/api/participant", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                id: studentId,
-                name,
-                className,
-                currentStep: 0,
-              }),
-            });
-            const data = await res.json();
-
-            if (data.error) {
-              alert("エラー: " + data.error);
-              return;
-            }
-
-            // サーバー側で割り当てられた condition を反映
-            setCondition(data.condition);
-            setStep(1);
-          } catch (err) {
-            console.error(err);
-            alert("サーバーとの通信に失敗しました。");
-          }
-        } else {
-          alert("氏名、学籍番号、授業名をすべて入力してください。");
-        }
-      }}
-    >
-      次へ (指示ページ)
-    </button>
-  </div>
-)}
-
+      {step === 0 && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">氏名、学籍番号、授業名を入力してください</h2>
+          <input className="border p-2 w-full mb-2" placeholder="名前" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="border p-2 w-full mb-2" placeholder="学籍番号" value={studentId} onChange={(e) => setStudentId(e.target.value)} />
+          <select className="border p-2 w-full mb-4" value={className} onChange={(e) => setClassName(e.target.value)}>
+            <option value="">授業名を選択してください</option>
+            <option value="月曜3限">月曜3限</option>
+            <option value="月曜4限">月曜4限</option>
+            <option value="木曜3限">木曜3限</option>
+            <option value="木曜4限">木曜4限</option>
+          </select>
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={async () => {
+              if (name.trim() && studentId.trim() && className !== "") {
+                const res = await fetch("/api/participant", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    id: studentId,
+                    name,
+                    className,
+                    condition,
+                    currentStep: 0,
+                    brainstorm: brainstormText,
+                    pretest: pretestText,
+                    wcfResult: wcfText,
+                    posttest: posttestText,
+                    survey: surveyAnswers,
+                    wlEntries,
+                    brainstormElapsed,
+                    pretestElapsed,
+                    wlElapsed,
+                    posttestElapsed,
+                  }),
+                });
+                const data = await res.json();
+                setCondition(data.condition ?? null);
+                setStep(1);
+              } else {
+                alert("氏名、学籍番号、授業名をすべて入力してください。");
+              }
+            }}
+          >
+            次へ (指示ページ)
+          </button>
+        </div>
+      )}
 
       {/* Step 1 */}
       {step === 1 && (
         <div>
+          <p className="mb-4 text-lg font-semibold text-red-600">あなたは「{condition}」グループに割り振られました</p>
           <h2 className="text-2xl font-semibold mb-4">英作文タスクの流れ</h2>
           <ol className="list-decimal pl-6 space-y-2">
             <li>ブレインストーミング (10分)</li>
@@ -276,7 +339,14 @@ export default function WritingPlatform() {
             <li>英作文タスク (30分)</li>
             <li>アンケート</li>
           </ol>
-          <button className="mt-6 bg-blue-500 text-white px-4 py-2 rounded" onClick={async () => { await saveProgress(); setStep(2); setBrainstormStart(Date.now()); }}>
+          <button
+            className="mt-6 bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={() => {
+              setBrainstormStart(Date.now());
+              setStep(2);
+              saveProgress();
+            }}
+          >
             ブレインストーミングを開始
           </button>
         </div>
@@ -286,14 +356,23 @@ export default function WritingPlatform() {
       {step === 2 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">ブレインストーミング (10分)</h2>
+          <p className="mb-4 text-gray-700">別紙の英作文タスクを参照しながら自身のアイデアを整理し、以下の記入欄にアイデアを書いてください。</p>
           <p className="mb-2 text-gray-600">
-            残り時間: {Math.max(0, 600 - brainstormElapsed) > 0
-              ? `${Math.floor((600 - brainstormElapsed) / 60)}:${String((600 - brainstormElapsed) % 60).padStart(2, "0")}`
+            残り時間:{" "}
+            {Math.max(0, 600 - brainstormTimer) > 0
+              ? `${Math.floor((600 - brainstormTimer) / 60)}:${String((600 - brainstormTimer) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
-          <p className="mb-4">別紙に記載されている英作文タスクに取り組むにあたり、自身の考えをまとめましょう。以下にアイデアを書いてください。</p>
           <textarea className="border p-2 w-full h-96" value={brainstormText} onChange={(e) => setBrainstormText(e.target.value)} />
-          <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={async () => { await saveProgress(); setStep(3); setPretestStart(Date.now()); }}>
+          <button
+            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={() => {
+              if (brainstormStart) setBrainstormElapsed(Math.floor((Date.now() - brainstormStart) / 1000));
+              setPretestStart(Date.now());
+              setStep(3);
+              saveProgress();
+            }}
+          >
             次へ (英作文タスク)
           </button>
         </div>
@@ -303,146 +382,71 @@ export default function WritingPlatform() {
       {step === 3 && (
         <div>
           <h3 className="font-semibold mb-2">英作文タスク (30分)</h3>
+          <p className="mb-4 text-gray-700">別紙の英作文タスクと自身のブレインストーミングを参照し、英作文を書いてください。</p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
-            {Math.max(0, 1800 - pretestElapsed) > 0
-              ? `${Math.floor((1800 - pretestElapsed) / 60)}:${String((1800 - pretestElapsed) % 60).padStart(2, "0")}`
+            {Math.max(0, 1800 - pretestTimer) > 0
+              ? `${Math.floor((1800 - pretestTimer) / 60)}:${String((1800 - pretestTimer) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
-
           <div className="grid grid-cols-2 gap-6">
             <div>
               <h3 className="font-semibold mb-2">ブレインストーミングの内容</h3>
-              <div className="border p-2 h-96 overflow-y-auto whitespace-pre-line bg-white">
-                {brainstormText}
-              </div>
+              <div className="border p-2 h-96 overflow-y-auto whitespace-pre-line bg-white">{brainstormText}</div>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">英作文を書いてください</h3>
-              <textarea
-                className="border p-2 w-full h-96"
-                value={pretestText}
-                onChange={(e) => setPretestText(e.target.value)}
-              />
+              <h3 className="font-semibold mb-2">英作文を書く</h3>
+              <textarea className="border p-2 w-full h-96" value={pretestText} onChange={(e) => setPretestText(e.target.value)} />
               <p className="text-right mt-1 text-sm text-gray-500">単語数: {wordCount(pretestText)}</p>
-              <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={async () => { await saveProgress(); setStep(4); }}>
-                次へ (振り返り準備)
-              </button>
             </div>
           </div>
+          <button
+            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={() => {
+              if (pretestStart) setPretestElapsed(Math.floor((Date.now() - pretestStart) / 1000));
+              setStep(4);
+              saveProgress();
+            }}
+          >
+            次へ (振り返り準備)
+          </button>
         </div>
       )}
 
-      {/* Step 5 */}
+      {/* Step 5 振り返り */}
       {step === 5 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">振り返り</h2>
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <h3 className="font-semibold">指示</h3>
-              <p className="text-sm mb-2">
-                フィードバックを参照しながら自身の英作文を読み返し、誤りを特定してください。<br />
-                それぞれの言語形式がなぜ誤っているのか、説明してください。<br />
-                また、フィードバックと自身の英作文を比較し、気づいたことや考えたことを記入してください。<br />
-                記入の際は、例にならって４つの項目を記入してください。<br />
-                「➕ Add」を押すと記録され、新しく記入できます。
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold">例</h3>
-              <table className="table-auto border-collapse border text-sm">
-                <thead>
-                  <tr>
-                    <th className="border px-2">誤り</th>
-                    <th className="border px-2">フィードバック</th>
-                    <th className="border px-2">コード</th>
-                    <th className="border px-2">説明</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border px-2">He go</td>
-                    <td className="border px-2">He goes</td>
-                    <td className="border px-2">GR</td>
-                    <td className="border px-2">主語と動詞の一致の誤り</td>
-                  </tr>
-                </tbody>
-              </table>
-              <p className="mt-2 text-sm">
-                <strong>コード:</strong> L=語彙 | GR=文法 | SP=スペル | P=句読点 | O=その他
-              </p>
-            </div>
-          </div>
-
+          {condition === "Control" && <p className="mb-4 text-gray-700">自身の英作文を読み返し、正しく書けているか確認してください。</p>}
+          {condition === "Model text" && <p className="mb-4 text-gray-700">自身の英作文とモデル文を比較して、どのように修正すべきか考えてください。</p>}
+          {condition === "AI-WCF" && <p className="mb-4 text-gray-700">自身の英作文とAIによるWCFを比較して、どのように修正すべきか考えてください。</p>}
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <h3 className="font-semibold mb-2">元の文 (Pre-Test)</h3>
               <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{pretestText}</div>
             </div>
-            <div>
-              <h3 className="font-semibold mb-2">{condition}</h3>
-              <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{wcfText}</div>
-            </div>
+            {condition !== "Control" && (
+              <div>
+                <h3 className="font-semibold mb-2">{condition}</h3>
+                <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{wcfText}</div>
+              </div>
+            )}
           </div>
-
-          <div className="mb-6">
-            <div className="grid grid-cols-4 gap-2 mb-2">
-              <input id="err" className="border p-1" placeholder="誤り" />
-              <input id="cor" className="border p-1" placeholder="修正" />
-              <select id="code" className="border p-1">
-                <option value="">コード</option>
-                <option value="L">L</option>
-                <option value="GR">GR</option>
-                <option value="SP">SP</option>
-                <option value="P">P</option>
-                <option value="O">O</option>
-              </select>
-              <input id="exp" className="border p-1" placeholder="説明" />
-            </div>
-            <button
-              className="bg-green-500 text-white px-2 py-1 rounded"
-              onClick={() => {
-                const err = (document.getElementById("err") as HTMLInputElement).value;
-                const cor = (document.getElementById("cor") as HTMLInputElement).value;
-                const code = (document.getElementById("code") as HTMLSelectElement).value;
-                const exp = (document.getElementById("exp") as HTMLInputElement).value;
-                if (err && cor && code) {
-                  setWlEntries([...wlEntries, { 誤り: err, 修正: cor, コード: code, 説明: exp }]);
-                  (document.getElementById("err") as HTMLInputElement).value = "";
-                  (document.getElementById("cor") as HTMLInputElement).value = "";
-                  (document.getElementById("code") as HTMLSelectElement).value = "";
-                  (document.getElementById("exp") as HTMLInputElement).value = "";
-                }
-              }}
-            >
-              ➕ Add
-            </button>
-          </div>
-
-          {wlEntries.length > 0 && (
-            <table className="table-auto border-collapse border w-full text-sm mb-6">
-              <thead>
-                <tr>
-                  <th className="border px-2">誤り</th>
-                  <th className="border px-2">修正</th>
-                  <th className="border px-2">コード</th>
-                  <th className="border px-2">説明</th>
-                </tr>
-              </thead>
-              <tbody>
-                {wlEntries.map((e, i) => (
-                  <tr key={i}>
-                    <td className="border px-2">{e.誤り}</td>
-                    <td className="border px-2">{e.修正}</td>
-                    <td className="border px-2">{e.コード}</td>
-                    <td className="border px-2">{e.説明}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={async () => { await saveProgress(); setStep(6); setPosttestStart(Date.now()); }}>
+          <p className="mb-2 text-gray-600">
+            残り時間:{" "}
+            {Math.max(0, 600 - wlTimer) > 0
+              ? `${Math.floor((600 - wlTimer) / 60)}:${String((600 - wlTimer) % 60).padStart(2, "0")}`
+              : "00:00"}
+          </p>
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={() => {
+              if (wlStart) setWlElapsed(Math.floor((Date.now() - wlStart) / 1000));
+              setPosttestStart(Date.now());
+              setStep(6);
+              saveProgress();
+            }}
+          >
             次へ (英作文タスク)
           </button>
         </div>
@@ -452,44 +456,42 @@ export default function WritingPlatform() {
       {step === 6 && (
         <div>
           <h3 className="font-semibold mb-2">英作文タスク (30分)</h3>
-          <p className="mb-4 font-semibold">
-            指示: 自身の書いた英作文を必要に応じて修正し、書き直してください。
-          </p>
+          <p className="mb-4 text-gray-700">自身が書いた英作文を参照し、書き直してください。</p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
-            {Math.max(0, 1800 - posttestElapsed) > 0
-              ? `${Math.floor((1800 - posttestElapsed) / 60)}:${String((1800 - posttestElapsed) % 60).padStart(2, "0")}`
+            {Math.max(0, 1800 - posttestTimer) > 0
+              ? `${Math.floor((1800 - posttestTimer) / 60)}:${String((1800 - posttestTimer) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
-
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <h3 className="font-semibold mb-2">元の文 (Pre-Test)</h3>
+              <h3 className="font-semibold mb-2">前回の英作文 (Pre-Test)</h3>
               <div className="border p-2 h-96 overflow-y-auto whitespace-pre-line bg-white">{pretestText}</div>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">英作文を書いてください</h3>
-              <textarea
-                className="border p-2 w-full h-96"
-                value={posttestText}
-                onChange={(e) => setPosttestText(e.target.value)}
-              />
+              <h3 className="font-semibold mb-2">修正版の英作文 (Post-Test)</h3>
+              <textarea className="border p-2 w-full h-96" value={posttestText} onChange={(e) => setPosttestText(e.target.value)} />
               <p className="text-right mt-1 text-sm text-gray-500">単語数: {wordCount(posttestText)}</p>
-              <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={async () => { await saveProgress(); setStep(7); }}>
-                次へ (アンケート)
-              </button>
             </div>
           </div>
+          <button
+            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={() => {
+              if (posttestStart) setPosttestElapsed(Math.floor((Date.now() - posttestStart) / 1000));
+              setStep(7);
+              saveProgress();
+            }}
+          >
+            次へ (アンケート)
+          </button>
         </div>
       )}
 
-      {/* Step 7 */}
+      {/* Step 7 アンケート */}
       {step === 7 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">アンケート</h2>
-          <p>
-            以下の各項目について、<strong>1（全くそう思わない）～5（非常にそう思う）</strong> で答えてください。
-          </p>
+          <p>以下の各項目について、<strong>1（全くそう思わない）～5（非常にそう思う）</strong> で答えてください。</p>
           {Object.entries(surveyQuestions).map(([cat, qs]) => (
             <div key={cat} className="mt-6">
               <h3 className="text-lg font-semibold">{cat}</h3>
@@ -498,7 +500,14 @@ export default function WritingPlatform() {
                   <p>{q}</p>
                   {[1, 2, 3, 4, 5].map((n) => (
                     <label key={n} className="mr-4">
-                      <input type="radio" name={q} value={n} checked={surveyAnswers[q] === n} onChange={() => setSurveyAnswers({ ...surveyAnswers, [q]: n })} /> {n}
+                      <input
+                        type="radio"
+                        name={q}
+                        value={n}
+                        checked={surveyAnswers[q] === n}
+                        onChange={() => setSurveyAnswers({ ...surveyAnswers, [q]: n })}
+                      />{" "}
+                      {n}
                     </label>
                   ))}
                 </div>
@@ -507,25 +516,27 @@ export default function WritingPlatform() {
           ))}
           <button
             className="mt-6 bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={async () => {
-              if (Object.keys(surveyAnswers).length < Object.values(surveyQuestions).flat().length) {
-                alert("すべての項目に回答してください。");
+            onClick={() => {
+              const totalQuestions = Object.values(surveyQuestions).reduce((sum, arr) => sum + arr.length, 0);
+              const answeredCount = Object.keys(surveyAnswers).length;
+              if (answeredCount < totalQuestions) {
+                alert("すべての質問に回答してください。");
               } else {
-                await saveProgress();
                 setStep(8);
+                saveProgress();
               }
             }}
           >
-            送信(次のページへ)
+            送信 (次のページへ)
           </button>
         </div>
       )}
 
-      {/* Step 8 */}
+      {/* Step 8 完了 */}
       {step === 8 && (
         <div>
           <h2 className="text-2xl font-semibold">完了</h2>
-          <p className="mb-4">すべてのステップが完了しました。以下のボタンからデータをダウンロードし、担当者に提出してください。</p>
+          <p className="mb-4">すべてのステップが完了しました。以下のボタンからデータをダウンロードしてください。</p>
           <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={downloadExcel}>
             結果をExcelでダウンロード
           </button>

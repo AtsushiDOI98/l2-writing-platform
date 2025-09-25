@@ -1,0 +1,10 @@
+Replace this file’s contents with a plain‑text description of the assignment instructions you want the WCF model to know about.
+
+Notes:
+- You can also place a PDF at `public/task.pdf`. If the `pdf-parse` package is installed, the server will extract text from it automatically. If not installed, this PDF will be ignored.
+- Env overrides:
+  - `TASK_CONTEXT_TEXT`: inline text that overrides files.
+  - `TASK_CONTEXT_PATH`: absolute or project‑relative path to a `.txt` or `.pdf` file.
+
+Example (delete below and paste your own):
+You will write an opinion paragraph on whether high school students should be required to do volunteer work. Include a clear topic sentence, at least two supporting reasons with explanations, and a concluding sentence. Aim for 120–180 words and avoid using machine translation.
