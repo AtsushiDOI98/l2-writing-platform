@@ -24,12 +24,12 @@ export async function POST(req: Request) {
     }
 
     const participant = await prisma.participant.upsert({
-      where: { id: body.id },
+      where: { id: body.studentId },   // ← 学籍番号を主キーに使う
       update: {
         name: body.name,
         className: body.className,
         condition: assignedCondition,
-        currentStep: body.currentStep,
+        currentStep: body.currentStep ?? 0,
         brainstorm: body.brainstorm || "",
         pretest: body.pretest || "",
         wcfResult: body.wcfResult || "",
@@ -38,11 +38,11 @@ export async function POST(req: Request) {
         wlEntries: body.wlEntries || [],
       },
       create: {
-        id: body.id,
+        id: body.studentId,            // ← id = 学籍番号
         name: body.name,
         className: body.className,
         condition: assignedCondition,
-        currentStep: body.currentStep,
+        currentStep: body.currentStep ?? 0,
         brainstorm: body.brainstorm || "",
         pretest: body.pretest || "",
         wcfResult: body.wcfResult || "",
