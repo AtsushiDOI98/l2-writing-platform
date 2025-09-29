@@ -55,6 +55,7 @@ export async function POST(req: Request) {
     // JSON に変換して返す（必ずシリアライズ可能にする）
     const safeParticipant = {
       ...participant,
+      condition: assignedCondition,
       survey: participant.survey ? JSON.parse(JSON.stringify(participant.survey)) : {},
       wlEntries: participant.wlEntries ? JSON.parse(JSON.stringify(participant.wlEntries)) : [],
     };
