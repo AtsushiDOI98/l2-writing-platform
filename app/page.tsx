@@ -123,7 +123,7 @@ export default function WritingPlatform() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: studentId,
+          studentId,
           name,
           className,
           condition,
@@ -297,7 +297,7 @@ export default function WritingPlatform() {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
-                    id: studentId,
+                    studentId,
                     name,
                     className,
                     condition,
