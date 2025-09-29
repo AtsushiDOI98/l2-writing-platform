@@ -1,13 +1,11 @@
 // app/api/wcf/route.ts
+export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
 import fs from "fs/promises";
 import path from "path";
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import * as XLSX from "xlsx";
 
 async function fileExists(p: string) {
   try {
@@ -22,7 +20,6 @@ let TASK_CONTEXT_CACHE: string | null = null;
 
 async function loadTaskContext(): Promise<string> {
   if (TASK_CONTEXT_CACHE !== null) return TASK_CONTEXT_CACHE;
-  // Priority: env inline text > env path > public/task-context.txt > public/task.pdf
   const inline = process.env.TASK_CONTEXT_TEXT;
   if (inline && inline.trim()) {
     TASK_CONTEXT_CACHE = inline.trim();
@@ -82,6 +79,21 @@ async function loadTaskContext(): Promise<string> {
   return "";
 }
 
+// 📊 Rubric loader from Excel
+async function loadRubricFromExcel(): Promise<string> {
+  const rubricPath = path.join(process.cwd(), "public", "rubric.xlsx");
+  if (!(await fileExists(rubricPath))) return "";
+
+  const buf = await fs.readFile(rubricPath);
+  const workbook = XLSX.read(buf, { type: "buffer" });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const json = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as string[][];
+
+  // Convert Excel rows into text (pipe-delimited)
+  return json.map((row) => row.join(" | ")).join("\n");
+}
+
 async function loadTaskImages(maxImages = 20): Promise<{ dataUrl: string }[]> {
   const publicDir = path.join(process.cwd(), "public");
   const pagesDir = path.join(publicDir, "task-pages");
@@ -95,7 +107,6 @@ async function loadTaskImages(maxImages = 20): Promise<{ dataUrl: string }[]> {
   const files = (await fs.readdir(pagesDir))
     .filter((f) => exts.has(path.extname(f).toLowerCase()))
     .sort((a, b) => {
-      // try natural sort by extracting first number, fallback to locale
       const na = (a.match(/\d+/)?.[0] ?? "");
       const nb = (b.match(/\d+/)?.[0] ?? "");
       return na && nb ? Number(na) - Number(nb) : a.localeCompare(b);
@@ -118,24 +129,46 @@ async function loadTaskImages(maxImages = 20): Promise<{ dataUrl: string }[]> {
 }
 
 export async function POST(req: Request) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "Server misconfigured: OPENAI_API_KEY is missing" },
+      { status: 500 }
+    );
+  }
+  const client = new OpenAI({ apiKey });
   const { text } = await req.json();
+
   const taskContextRaw = await loadTaskContext();
-  // Limit context length to avoid token overflow
   const taskContext = taskContextRaw ? taskContextRaw.slice(0, 8000) : "";
+
+  const rubric = await loadRubricFromExcel();
 
   const messages: ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content:
-        "Rewrite this writing as if written by an English native speaker, keeping the meaning the same.",
-    },
+      content: `I would like you to mark an essay written by an English as a foreign language (EFL) learner. 
+Each essay is assigned a rating of 0 to 9, with 9 being the highest and 0 the lowest. 
+You don’t have to explain why you assign that specific score. Just report the score only.
+
+After reporting the score, rewrite the essay into an improved version based on the IELTS Writing rubric. 
+Keep the original meaning, but improve vocabulary, grammar, coherence, and cohesion. 
+Present only the score and the improved essay, without explanation.`
+    }
   ];
+
+  if (rubric) {
+    messages.push({
+      role: "system",
+      content: "Here is the IELTS Writing rubric (Band 1–9 descriptors):\n\n" + rubric,
+    });
+  }
 
   if (taskContext) {
     messages.push({
       role: "system",
       content:
-        "Task instructions/context extracted from the provided PDF or text. Use this to better understand the student’s assignment, but do not copy it verbatim into the rewrite.\n\n" +
+        "Task instructions/context extracted from the provided PDF or text. Use this to better understand the writing task.\n\n" +
         taskContext,
     });
   }
@@ -144,7 +177,10 @@ export async function POST(req: Request) {
   if (taskImages.length > 0) {
     const parts: ChatCompletionContentPart[] = [
       { type: "text", text },
-      ...taskImages.map((img) => ({ type: "image_url", image_url: { url: img.dataUrl } } as ChatCompletionContentPart)),
+      ...taskImages.map((img) => ({
+        type: "image_url",
+        image_url: { url: img.dataUrl },
+      }) as ChatCompletionContentPart),
     ];
     messages.push({ role: "user", content: parts });
   } else {
