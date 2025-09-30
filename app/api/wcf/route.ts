@@ -147,14 +147,10 @@ export async function POST(req: Request) {
   const messages: ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content: `I would like you to mark an essay written by an English as a foreign language (EFL) learner. 
-Each essay is assigned a rating of 0 to 9, with 9 being the highest and 0 the lowest. 
-You don’t have to explain why you assign that specific score. Just report the score only based on the IELTS Writing rubric.
+      content: `I would like you to rewrite the essay into an improved version. 
+Present the improved essay only. You do not have to explain in detail.
 
-After reporting the score, rewrite the essay into an improved version. 
-Present only the score and the improved essay, without explanation.
-
-When you provide feedback, Please make sure to use each word once from the word list below.
+When you provide feedback, please make sure to use each word once from the word list below.
 If learners skip the process, compensate for the missing parts using the word below. 
 
 Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`
