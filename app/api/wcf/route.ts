@@ -154,10 +154,11 @@ You don’t have to explain why you assign that specific score. Just report the 
 After reporting the score, rewrite the essay into an improved version. 
 Present only the score and the improved essay, without explanation.
 
-When you provide feedback, I would like you to use each word once from the word list below.
-If learner skip the process, compensate for the missing parts using the word below. 
+When you provide feedback, Please make sure to use each word once from the word list below.
+If learners skip the process, compensate for the missing parts using the word below. 
 
 Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`
+
     }
   ];
 
@@ -199,4 +200,3 @@ Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulv
 
   return NextResponse.json({ result: completion.choices[0].message.content });
 }
-
