@@ -153,7 +153,11 @@ You don’t have to explain why you assign that specific score. Just report the 
 
 After reporting the score, rewrite the essay into an improved version based on the IELTS Writing rubric. 
 Keep the original meaning, but improve vocabulary, grammar, coherence, and cohesion. 
-Present only the score and the improved essay, without explanation.`
+Present only the score and the improved essay, without explanation.
+
+When you provide feedback, I would like you to use the following words once if you can replace.
+
+Words: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`
     }
   ];
 
@@ -195,3 +199,4 @@ Present only the score and the improved essay, without explanation.`
 
   return NextResponse.json({ result: completion.choices[0].message.content });
 }
+
