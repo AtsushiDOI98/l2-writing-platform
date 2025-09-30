@@ -155,7 +155,7 @@ After reporting the score, rewrite the essay into an improved version based on t
 Keep the original meaning, but improve vocabulary, grammar, coherence, and cohesion. 
 Present only the score and the improved essay, without explanation.
 
-When you provide feedback, I would like you to use the following words once if you can replace.
+When you provide feedback, I would like you to use all words below once if you can replace.
 
 Words: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`
     }
