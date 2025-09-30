@@ -149,9 +149,9 @@ export async function POST(req: Request) {
       role: "system",
       content: `I would like you to mark an essay written by an English as a foreign language (EFL) learner. 
 Each essay is assigned a rating of 0 to 9, with 9 being the highest and 0 the lowest. 
-You don’t have to explain why you assign that specific score. Just report the score only.
+You don’t have to explain why you assign that specific score. Just report the score only based on the IELTS Writing rubric.
 
-After reporting the score, rewrite the essay into an improved version based on the IELTS Writing rubric. 
+After reporting the score, rewrite the essay into an improved version. 
 Present only the score and the improved essay, without explanation.
 
 When you provide feedback, I would like you to use each word once from the word list below.
