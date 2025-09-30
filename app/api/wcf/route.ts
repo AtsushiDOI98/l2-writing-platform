@@ -155,6 +155,7 @@ After reporting the score, rewrite the essay into an improved version.
 Present only the score and the improved essay, without explanation.
 
 When you provide feedback, I would like you to use each word once from the word list below.
+If learner skip the process, compensate for the missing parts using the word below. 
 
 Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`
     }
