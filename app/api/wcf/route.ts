@@ -138,10 +138,9 @@ export async function POST(req: Request) {
 Present only the improved essay. Do not provide explanations.
 
 You must use each word from the word list exactly once in your improved essay. 
-Do not skip or omit any word. Even if the learner’s essay does not mention a process, 
-add a sentence that describes it using the appropriate word.
+Do not skip or omit any word. 
 
-If the learner's essay skips a step shown in the provided picture, 
+If the learner's essay skips a step shown in the provided pictures, 
 please add a sentence describing that step using the corresponding word from the list.
 
 After rewriting, double-check that all words in the word list are included exactly once.
@@ -155,8 +154,8 @@ Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulv
   messages.push({
     role: "system",
     content:
-      "The following text contains the official assignment instructions. " +
-      "Use these instructions together with the provided images to fully understand the writing task.\n\n" +
+       "The following text contains the assignment instructions. " +
+        "Use these instructions together with the provided step-by-step images to fully understand the writing task.\n\n" +
       taskContext,
   });
 }
