@@ -5,8 +5,8 @@ import OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
 import fs from "fs/promises";
 import path from "path";
-import * as XLSX from "xlsx";
 
+// ファイル存在確認
 async function fileExists(p: string) {
   try {
     await fs.access(p);
@@ -18,6 +18,7 @@ async function fileExists(p: string) {
 
 let TASK_CONTEXT_CACHE: string | null = null;
 
+// 📄 タスクコンテキスト読み込み
 async function loadTaskContext(): Promise<string> {
   if (TASK_CONTEXT_CACHE !== null) return TASK_CONTEXT_CACHE;
   const inline = process.env.TASK_CONTEXT_TEXT;
@@ -26,7 +27,8 @@ async function loadTaskContext(): Promise<string> {
     return TASK_CONTEXT_CACHE;
   }
 
-  const resolvePath = (p: string) => (path.isAbsolute(p) ? p : path.join(process.cwd(), p));
+  const resolvePath = (p: string) =>
+    path.isAbsolute(p) ? p : path.join(process.cwd(), p);
 
   const envPath = process.env.TASK_CONTEXT_PATH ? resolvePath(process.env.TASK_CONTEXT_PATH) : null;
   const publicDir = path.join(process.cwd(), "public");
@@ -80,21 +82,6 @@ async function loadTaskContext(): Promise<string> {
   return "";
 }
 
-// 📊 Rubric loader from Excel
-async function loadRubricFromExcel(): Promise<string> {
-  const rubricPath = path.join(process.cwd(), "public", "rubric.xlsx");
-  if (!(await fileExists(rubricPath))) return "";
-
-  const buf = await fs.readFile(rubricPath);
-  const workbook = XLSX.read(buf, { type: "buffer" });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const json = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as string[][];
-
-  // Convert Excel rows into text (pipe-delimited)
-  return json.map((row) => row.join(" | ")).join("\n");
-}
-
 // 📷 Task images loader
 async function loadTaskImages(maxImages = 20): Promise<{ dataUrl: string }[]> {
   const publicDir = path.join(process.cwd(), "public");
@@ -144,25 +131,18 @@ export async function POST(req: Request) {
   const taskContextRaw = await loadTaskContext();
   const taskContext = taskContextRaw ? taskContextRaw.slice(0, 8000) : "";
 
-  const rubric = await loadRubricFromExcel();
-
   const messages: ChatCompletionMessageParam[] = [
     {
       role: "system",
       content: `I would like you to rewrite the essay into an improved version. 
 Present the improved essay only. You do not have to explain in detail.
+
 When you provide feedback, please make sure to use each word once from the word list below.
 If learners skip the process shown in the picture, compensate for the missing parts using the word below. 
+
 Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`,
     },
   ];
-
-  if (rubric) {
-    messages.push({
-      role: "system",
-      content: "Here is the IELTS Writing rubric (Band 1–9 descriptors):\n\n" + rubric,
-    });
-  }
 
   if (taskContext) {
     messages.push({
