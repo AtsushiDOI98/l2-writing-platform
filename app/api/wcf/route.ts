@@ -142,18 +142,20 @@ When you provide feedback, you must use each word from the word list exactly onc
 If learner's essay does not mention some steps that are shown in the provided picture, 
 please add sentences that describe those missing steps, making sure to use the corresponding words from the list.
 
-Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`,
+Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`
+,
     },
   ];
 
   if (taskContext) {
-    messages.push({
-      role: "system",
-      content:
-        "Task instructions/context extracted from the provided PDF or text. Use this to better understand the writing task.\n\n" +
-        taskContext,
-    });
-  }
+  messages.push({
+    role: "system",
+    content:
+      "The following text contains the official assignment instructions. " +
+      "Use these instructions together with the provided images to fully understand the writing task.\n\n" +
+      taskContext,
+  });
+}
 
   const taskImages = await loadTaskImages();
   if (taskImages.length > 0) {
