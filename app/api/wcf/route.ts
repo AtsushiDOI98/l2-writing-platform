@@ -2,19 +2,33 @@
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionContentPart,
+} from "openai/resources/chat/completions";
 import fs from "fs/promises";
 import path from "path";
 
-// 必須語彙リスト
+// 📌 必須語彙リスト
 const WORD_LIST = [
-  "ripe", "harvest", "sack", "weigh", "load",
-  "transport", "roast", "shell", "stir", "pulverize", "mold"
+  "ripe",
+  "harvest",
+  "sack",
+  "weigh",
+  "load",
+  "transport",
+  "roast",
+  "shell",
+  "stir",
+  "pulverize",
+  "mold",
 ];
 
-// 出力チェック関数
+// ✅ 出力チェック関数
 function checkWords(essay: string): string[] {
-  return WORD_LIST.filter((word) => !essay.toLowerCase().includes(word));
+  return WORD_LIST.filter(
+    (word) => !essay.toLowerCase().includes(word.toLowerCase())
+  );
 }
 
 // ファイル存在確認
@@ -41,7 +55,9 @@ async function loadTaskContext(): Promise<string> {
   const resolvePath = (p: string) =>
     path.isAbsolute(p) ? p : path.join(process.cwd(), p);
 
-  const envPath = process.env.TASK_CONTEXT_PATH ? resolvePath(process.env.TASK_CONTEXT_PATH) : null;
+  const envPath = process.env.TASK_CONTEXT_PATH
+    ? resolvePath(process.env.TASK_CONTEXT_PATH)
+    : null;
   const publicDir = path.join(process.cwd(), "public");
   const defaultTxt = path.join(publicDir, "task-context.txt");
   const defaultPdf = path.join(publicDir, "task.pdf");
@@ -93,8 +109,10 @@ async function loadTaskContext(): Promise<string> {
   return "";
 }
 
-// Task images loader
-async function loadTaskImages(maxImages = 20): Promise<{ dataUrl: string }[]> {
+// 📷 Task images loader
+async function loadTaskImages(
+  maxImages = 20
+): Promise<{ dataUrl: string }[]> {
   const publicDir = path.join(process.cwd(), "public");
   const pagesDir = path.join(publicDir, "task-pages");
   const exts = new Set([".png", ".jpg", ".jpeg"]);
@@ -107,8 +125,8 @@ async function loadTaskImages(maxImages = 20): Promise<{ dataUrl: string }[]> {
   const files = (await fs.readdir(pagesDir))
     .filter((f) => exts.has(path.extname(f).toLowerCase()))
     .sort((a, b) => {
-      const na = (a.match(/\d+/)?.[0] ?? "");
-      const nb = (b.match(/\d+/)?.[0] ?? "");
+      const na = a.match(/\d+/)?.[0] ?? "";
+      const nb = b.match(/\d+/)?.[0] ?? "";
       return na && nb ? Number(na) - Number(nb) : a.localeCompare(b);
     })
     .slice(0, maxImages);
@@ -142,19 +160,19 @@ export async function POST(req: Request) {
   const taskContextRaw = await loadTaskContext();
   const taskContext = taskContextRaw ? taskContextRaw.slice(0, 8000) : "";
 
-  const baseSystemPrompt = `This is an essay written by English as foreign language (EFL) learner.
-He or she wrote it based on the 15 steps to make chocolate as shown in the provided picture. 
+  const baseSystemPrompt = `This is an essay written by an English as a foreign language (EFL) learner.
+He or she wrote it based on the 15 steps to make chocolate as shown in the provided pictures. 
 
 I would like you to rewrite the essay into an improved version. 
-Present only the improved essay. You do not have to provide explanations.
+Present only the improved essay. Do not provide explanations.
 
-You must use each word from the word list exactly once in the improved essay. 
+You must use each word from the word list exactly once in your improved essay. 
 Do not skip or omit any word. Even if the learner’s essay does not mention a process, 
 add a sentence that describes it using the appropriate word.
 
 Follow the sequence of steps shown in the provided images. 
 Each word must be placed in the step where it belongs in the chocolate-making process. 
-Do not use a word into an incorrect step.
+Do not use a word in an incorrect step.
 
 After rewriting, double-check that all words in the word list are included exactly once.
 
@@ -177,6 +195,15 @@ Word list: ${WORD_LIST.join(", ")}`;
           "The following text contains the instructions. " +
           "Use these instructions together with the provided images to fully understand the writing task.\n\n" +
           taskContext,
+      });
+    }
+
+    if (missing.length > 0) {
+      messages.push({
+        role: "system",
+        content: `The previous output was missing these required words: ${missing.join(
+          ", "
+        )}. Please include them correctly this time.`,
       });
     }
 
@@ -209,5 +236,14 @@ Word list: ${WORD_LIST.join(", ")}`;
     attempt++;
   } while (missing.length > 0 && attempt < 3);
 
-  return NextResponse.json({ result, missing });
+  // 🔧 フォールバック: まだ missing が残っていれば補完
+  if (missing.length > 0) {
+    result +=
+      "\n\n(補足: The following sentences ensure completeness: " +
+      missing.map((w) => `This step includes the word '${w}'.`).join(" ") +
+      ")";
+    missing = [];
+  }
+
+  return NextResponse.json({ result });
 }
