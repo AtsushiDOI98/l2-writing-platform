@@ -82,10 +82,10 @@ async function loadTaskContext(): Promise<string> {
   return "";
 }
 
-// Task images loader (URL ベース)
+// Task images loader (URL ベース, task-images フォルダ対応)
 async function loadTaskImages(maxImages = 15): Promise<{ url: string }[]> {
   const publicDir = path.join(process.cwd(), "public");
-  const pagesDir = path.join(publicDir, "task-pages");
+  const pagesDir = path.join(publicDir, "task-images"); // 👈 フォルダ名修正
   const exts = new Set([".png", ".jpg", ".jpeg"]);
   const out: { url: string }[] = [];
   try {
@@ -103,7 +103,7 @@ async function loadTaskImages(maxImages = 15): Promise<{ url: string }[]> {
     .slice(0, maxImages);
 
   for (const f of files) {
-    out.push({ url: `/task-pages/${f}` });
+    out.push({ url: `/task-images/${f}` }); // 👈 URL も task-images に修正
   }
   return out;
 }
