@@ -151,10 +151,8 @@ export async function POST(req: Request) {
       role: "system",
       content: `I would like you to rewrite the essay into an improved version. 
 Present the improved essay only. You do not have to explain in detail.
-
 When you provide feedback, please make sure to use each word once from the word list below.
-If learners skip the process, compensate for the missing parts using the word below. 
-
+If learners skip the process shown in the picture, compensate for the missing parts using the word below. 
 Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`,
     },
   ];
