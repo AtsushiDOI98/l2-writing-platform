@@ -33,7 +33,8 @@ async function loadTaskContext(): Promise<string> {
   const defaultTxt = path.join(publicDir, "task-context.txt");
   const defaultPdf = path.join(publicDir, "task.pdf");
 
-  const tryTxt = async (p: string) => (await fileExists(p) ? (await fs.readFile(p, "utf8")).toString() : "");
+  const tryTxt = async (p: string) =>
+    (await fileExists(p) ? (await fs.readFile(p, "utf8")).toString() : "");
 
   const tryPdf = async (p: string) => {
     if (!(await fileExists(p))) return "";
@@ -94,6 +95,7 @@ async function loadRubricFromExcel(): Promise<string> {
   return json.map((row) => row.join(" | ")).join("\n");
 }
 
+// 📷 Task images loader
 async function loadTaskImages(maxImages = 20): Promise<{ dataUrl: string }[]> {
   const publicDir = path.join(process.cwd(), "public");
   const pagesDir = path.join(publicDir, "task-pages");
@@ -153,9 +155,8 @@ Present the improved essay only. You do not have to explain in detail.
 When you provide feedback, please make sure to use each word once from the word list below.
 If learners skip the process, compensate for the missing parts using the word below. 
 
-Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`
-
-    }
+Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`,
+    },
   ];
 
   if (rubric) {
@@ -178,10 +179,13 @@ Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulv
   if (taskImages.length > 0) {
     const parts: ChatCompletionContentPart[] = [
       { type: "text", text },
-      ...taskImages.map((img) => ({
-        type: "image_url",
-        image_url: { url: img.dataUrl },
-      }) as ChatCompletionContentPart),
+      ...taskImages.map(
+        (img) =>
+          ({
+            type: "image_url",
+            image_url: { url: img.dataUrl },
+          } as ChatCompletionContentPart)
+      ),
     ];
     messages.push({ role: "user", content: parts });
   } else {
