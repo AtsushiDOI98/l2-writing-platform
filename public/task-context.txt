@@ -7,4 +7,5 @@ Notes:
   - `TASK_CONTEXT_PATH`: absolute or project‑relative path to a `.txt` or `.pdf` file.
 
 Example (delete below and paste your own):
-You will write an opinion paragraph on whether high school students should be required to do volunteer work. Include a clear topic sentence, at least two supporting reasons with explanations, and a concluding sentence. Aim for 120–180 words and avoid using machine translation.
+以下のダイアグラムはチョコレートを作る過程を⽰しています。
+各過程について⾔及しながら、チョコレートを作る過程を英語で説明しなさい。
