@@ -6,13 +6,13 @@ import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "open
 import fs from "fs/promises";
 import path from "path";
 
-// 📌 必須語彙リスト
+// 必須語彙リスト
 const WORD_LIST = [
   "ripe", "harvest", "sack", "weigh", "load",
   "transport", "roast", "shell", "stir", "pulverize", "mold"
 ];
 
-// ✅ 出力チェック関数
+// 出力チェック関数
 function checkWords(essay: string): string[] {
   return WORD_LIST.filter((word) => !essay.toLowerCase().includes(word));
 }
@@ -93,7 +93,7 @@ async function loadTaskContext(): Promise<string> {
   return "";
 }
 
-// 📷 Task images loader
+// Task images loader
 async function loadTaskImages(maxImages = 20): Promise<{ dataUrl: string }[]> {
   const publicDir = path.join(process.cwd(), "public");
   const pagesDir = path.join(publicDir, "task-pages");
