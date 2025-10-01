@@ -82,12 +82,12 @@ async function loadTaskContext(): Promise<string> {
   return "";
 }
 
-// Task images loader
-async function loadTaskImages(maxImages = 15): Promise<{ dataUrl: string }[]> {
+// Task images loader (URL ベース)
+async function loadTaskImages(maxImages = 15): Promise<{ url: string }[]> {
   const publicDir = path.join(process.cwd(), "public");
   const pagesDir = path.join(publicDir, "task-pages");
   const exts = new Set([".png", ".jpg", ".jpeg"]);
-  const out: { dataUrl: string }[] = [];
+  const out: { url: string }[] = [];
   try {
     await fs.access(pagesDir);
   } catch {
@@ -103,16 +103,7 @@ async function loadTaskImages(maxImages = 15): Promise<{ dataUrl: string }[]> {
     .slice(0, maxImages);
 
   for (const f of files) {
-    const full = path.join(pagesDir, f);
-    try {
-      const buf = await fs.readFile(full);
-      const ext = path.extname(f).toLowerCase();
-      const mime = ext === ".png" ? "image/png" : "image/jpeg";
-      const dataUrl = `data:${mime};base64,${buf.toString("base64")}`;
-      out.push({ dataUrl });
-    } catch {
-      // ignore individual file errors
-    }
+    out.push({ url: `/task-pages/${f}` });
   }
   return out;
 }
@@ -165,14 +156,17 @@ export async function POST(req: Request) {
   }
 
   const taskImages = await loadTaskImages();
+  console.log("Loaded image URLs:", taskImages.map(i => i.url));
+
   if (taskImages.length > 0) {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://l2-writing-platform.onrender.com";
     const parts: ChatCompletionContentPart[] = [
       { type: "text", text },
       ...taskImages.map(
         (img) =>
           ({
             type: "image_url",
-            image_url: { url: img.dataUrl },
+            image_url: { url: `${baseUrl}${img.url}` },
           } as ChatCompletionContentPart)
       ),
     ];
@@ -189,3 +183,4 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ result: completion.choices[0].message.content });
 }
+
