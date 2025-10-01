@@ -134,20 +134,23 @@ export async function POST(req: Request) {
   const messages: ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content: `I would like you to rewrite the essay into an improved version. 
-Present only the improved essay. Do not provide explanations.
+      content: `This is an essay written by English as foreign language (EFL) learner.
+      He or she wrote it based on the 15 steps to make chocolate as shown in the provided picture. 
+      
+      I would like you to rewrite the essay into an improved version. 
+      Present only the improved essay. You do not have to provide explanations.
 
-You must use each word from the word list exactly once in your improved essay. 
-Do not skip or omit any word. Even if the learner’s essay does not mention a process, 
-add a sentence that describes it using the appropriate word.
+      You must use each word from the word list exactly once in the improved essay. 
+      Do not skip or omit any word. Even if the learner’s essay does not mention a process, 
+      add a sentence that describes it using the appropriate word.
 
-Follow the sequence of steps shown in the provided images. 
-Each word must be placed in the step where it logically belongs in the chocolate-making process. 
-Do not force a word into an incorrect step just to use it.
+      Follow the sequence of steps shown in the provided images. 
+      Each word must be placed in the step where it belongs in the chocolate-making process. 
+      Do not use a word into an incorrect step.
 
-After rewriting, double-check that all words in the word list are included exactly once.
+      After rewriting, double-check that all words in the word list are included exactly once.
 
-Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`
+      Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`
 ,
     },
   ];
@@ -157,7 +160,7 @@ Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulv
     role: "system",
     content:
        "The following text contains the assignment instructions. " +
-        "Use these instructions together with the provided step-by-step images to fully understand the writing task.\n\n" +
+        "Use these instructions together with the provided picture to fully understand the writing task.\n\n" +
       taskContext,
   });
 }
