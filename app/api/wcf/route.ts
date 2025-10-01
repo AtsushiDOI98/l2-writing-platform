@@ -6,6 +6,17 @@ import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "open
 import fs from "fs/promises";
 import path from "path";
 
+// 📌 必須語彙リスト
+const WORD_LIST = [
+  "ripe", "harvest", "sack", "weigh", "load",
+  "transport", "roast", "shell", "stir", "pulverize", "mold"
+];
+
+// ✅ 出力チェック関数
+function checkWords(essay: string): string[] {
+  return WORD_LIST.filter((word) => !essay.toLowerCase().includes(word));
+}
+
 // ファイル存在確認
 async function fileExists(p: string) {
   try {
@@ -131,62 +142,72 @@ export async function POST(req: Request) {
   const taskContextRaw = await loadTaskContext();
   const taskContext = taskContextRaw ? taskContextRaw.slice(0, 8000) : "";
 
-  const messages: ChatCompletionMessageParam[] = [
-    {
-      role: "system",
-      content: `This is an essay written by English as foreign language (EFL) learner.
-      He or she wrote it based on the 15 steps to make chocolate as shown in the provided picture. 
-      
-      I would like you to rewrite the essay into an improved version. 
-      Present only the improved essay. You do not have to provide explanations.
+  const baseSystemPrompt = `This is an essay written by English as foreign language (EFL) learner.
+He or she wrote it based on the 15 steps to make chocolate as shown in the provided picture. 
 
-      You must use each word from the word list exactly once in the improved essay. 
-      Do not skip or omit any word. Even if the learner’s essay does not mention a process, 
-      add a sentence that describes it using the appropriate word.
+I would like you to rewrite the essay into an improved version. 
+Present only the improved essay. You do not have to provide explanations.
 
-      Follow the sequence of steps shown in the provided images. 
-      Each word must be placed in the step where it belongs in the chocolate-making process. 
-      Do not use a word into an incorrect step.
+You must use each word from the word list exactly once in the improved essay. 
+Do not skip or omit any word. Even if the learner’s essay does not mention a process, 
+add a sentence that describes it using the appropriate word.
 
-      After rewriting, double-check that all words in the word list are included exactly once.
+Follow the sequence of steps shown in the provided images. 
+Each word must be placed in the step where it belongs in the chocolate-making process. 
+Do not use a word into an incorrect step.
 
-      Word list: ripe, harvest, sack, weigh, load, transport, roast, shell, stir, pulverize, mold`
-,
-    },
-  ];
+After rewriting, double-check that all words in the word list are included exactly once.
 
-  if (taskContext) {
-  messages.push({
-    role: "system",
-    content:
-       "The following text contains the assignment instructions. " +
-        "Use these instructions together with the provided picture to fully understand the writing task.\n\n" +
-      taskContext,
-  });
-}
+Word list: ${WORD_LIST.join(", ")}`;
 
-  const taskImages = await loadTaskImages();
-  if (taskImages.length > 0) {
-    const parts: ChatCompletionContentPart[] = [
-      { type: "text", text },
-      ...taskImages.map(
-        (img) =>
-          ({
-            type: "image_url",
-            image_url: { url: img.dataUrl },
-          } as ChatCompletionContentPart)
-      ),
+  // Retry付き生成
+  let attempt = 0;
+  let result = "";
+  let missing: string[] = [];
+
+  do {
+    const messages: ChatCompletionMessageParam[] = [
+      { role: "system", content: baseSystemPrompt },
     ];
-    messages.push({ role: "user", content: parts });
-  } else {
-    messages.push({ role: "user", content: text });
-  }
 
-  const completion = await client.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages,
-    temperature: 0.3,
-  });
+    if (taskContext) {
+      messages.push({
+        role: "system",
+        content:
+          "The following text contains the instructions. " +
+          "Use these instructions together with the provided images to fully understand the writing task.\n\n" +
+          taskContext,
+      });
+    }
 
-  return NextResponse.json({ result: completion.choices[0].message.content });
+    const taskImages = await loadTaskImages();
+    if (taskImages.length > 0) {
+      const parts: ChatCompletionContentPart[] = [
+        { type: "text", text },
+        ...taskImages.map(
+          (img) =>
+            ({
+              type: "image_url",
+              image_url: { url: img.dataUrl },
+            } as ChatCompletionContentPart)
+        ),
+      ];
+      messages.push({ role: "user", content: parts });
+    } else {
+      messages.push({ role: "user", content: text });
+    }
+
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      temperature: 0.3,
+    });
+
+    result = completion.choices[0].message.content ?? "";
+    missing = checkWords(result);
+
+    attempt++;
+  } while (missing.length > 0 && attempt < 3);
+
+  return NextResponse.json({ result, missing });
 }
