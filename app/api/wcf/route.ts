@@ -138,10 +138,12 @@ export async function POST(req: Request) {
 Present only the improved essay. Do not provide explanations.
 
 You must use each word from the word list exactly once in your improved essay. 
-Do not skip or omit any word. 
+Do not skip or omit any word. Even if the learner’s essay does not mention a process, 
+add a sentence that describes it using the appropriate word.
 
-If the learner's essay skips a step shown in the provided pictures, 
-please add a sentence describing that step using the corresponding word from the list.
+Follow the sequence of steps shown in the provided images. 
+Each word must be placed in the step where it logically belongs in the chocolate-making process. 
+Do not force a word into an incorrect step just to use it.
 
 After rewriting, double-check that all words in the word list are included exactly once.
 
