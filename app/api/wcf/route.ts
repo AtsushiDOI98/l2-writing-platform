@@ -141,7 +141,7 @@ export async function POST(req: Request) {
 
       After rewriting, double-check that all words in the word list are included exactly once.
 
-      Word list: ripe, harvest, sack, weigh, heave, roast, layer, grind, agitate, mold`,
+      Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, mold`,
     },
   ];
 
