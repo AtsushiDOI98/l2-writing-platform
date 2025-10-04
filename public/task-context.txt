@@ -1,11 +1,4 @@
-Replace this file’s contents with a plain‑text description of the assignment instructions you want the WCF model to know about.
+以下のダイアグラムはチョコレートを作る過程を示しています。
+各過程について言及しながら、チョコレートを作る過程を説明してください。
+少なくとも150字の英語で書いてください。
 
-Notes:
-- You can also place a PDF at `public/task.pdf`. If the `pdf-parse` package is installed, the server will extract text from it automatically. If not installed, this PDF will be ignored.
-- Env overrides:
-  - `TASK_CONTEXT_TEXT`: inline text that overrides files.
-  - `TASK_CONTEXT_PATH`: absolute or project‑relative path to a `.txt` or `.pdf` file.
-
-Example (delete below and paste your own):
-以下のダイアグラムはチョコレートを作る過程を⽰しています。
-各過程について⾔及しながら、チョコレートを作る過程を英語で説明しなさい。
