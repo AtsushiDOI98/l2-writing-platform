@@ -208,7 +208,7 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
         "⑤ Post-Test": posttestText,
         "Brainstorm(sec)": brainstormElapsed,
         "Pre-Test(sec)": pretestElapsed,
-        "Reflection(sec)": wlElapsed, // ✅ 時間のみ保持
+        "Reflection(sec)": wlElapsed, // 
         "Post-Test(sec)": posttestElapsed,
         "Pre-Test(words)": wordCount(pretestText),
         "Post-Test(words)": wordCount(posttestText),
