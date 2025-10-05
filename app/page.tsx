@@ -165,14 +165,17 @@ export default function WritingPlatform() {
   }, [pretestText]);
 
   // --- 条件処理 ---
-  useEffect(() => {
-    if (step === 4) {
-      if (condition === "Control") {
-        setWcfText("");
-        setStep(5);
-        setWlStart(Date.now());
-      } else if (condition === "Model text") {
-        setWcfText(`
+useEffect(() => {
+  if (step === 4 && condition) {
+    // すべて小文字に変換して比較（表記ゆれ防止）
+    const cond = condition.trim().toLowerCase();
+
+    if (cond === "control") {
+      setWcfText("");
+      setStep(5);
+      setWlStart(Date.now());
+    } else if (cond === "model text") {
+      setWcfText(`
 Chocolate is one of the most popular sweets in the world.
 It is made from cacao beans through many careful steps.
 
@@ -190,16 +193,16 @@ Finally, the chocolate is poured into a mold to give it its shape.
 After cooling, the chocolate is wrapped and ready to be enjoyed by people all over the world.
 Making chocolate takes time, care, and skill, but the result is delicious.
 `);
+      setStep(5);
+      setWlStart(Date.now());
+    } else if (cond === "ai-wcf" && !wcfText) {
+      generateWCF().then(() => {
         setStep(5);
         setWlStart(Date.now());
-      } else if (condition === "AI-WCF" && !wcfText) {
-        generateWCF().then(() => {
-          setStep(5);
-          setWlStart(Date.now());
-        });
-      }
+      });
     }
-  }, [step, condition, pretestText, wcfText, generateWCF]);
+  }
+}, [step, condition, pretestText, wcfText, generateWCF]);
 
   // --- 単語数 ---
   const wordCount = (text: string) => {
