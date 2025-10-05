@@ -22,6 +22,7 @@ export default function WritingPlatform() {
   const [brainstormText, setBrainstormText] = useState("");
   const [pretestText, setPretestText] = useState("");
   const [wcfText, setWcfText] = useState("");
+  const [wcfLoading, setWcfLoading] = useState(false);
   const [wlEntries, setWlEntries] = useState<WLEntry[]>([]);
   const [posttestText, setPosttestText] = useState("");
   const [surveyAnswers, setSurveyAnswers] = useState<{ [key: string]: number }>({});
@@ -147,6 +148,7 @@ export default function WritingPlatform() {
 
   // --- AI-WCF ---
   const generateWCF = useCallback(async () => {
+    setWcfLoading(true);
     try {
       const res = await fetch("/api/wcf", {
         method: "POST",
@@ -161,6 +163,8 @@ export default function WritingPlatform() {
       }
     } catch {
       setWcfText("エラー: API呼び出しに失敗しました。");
+    } finally {
+      setWcfLoading(false);
     }
   }, [pretestText]);
 
@@ -195,11 +199,18 @@ Making chocolate takes time, care, and skill, but the result is delicious.
 `);
       setStep(5);
       setWlStart(Date.now());
-    } else if (cond === "ai-wcf" && !wcfText) {
-      generateWCF().then(() => {
+    } else if (cond === "ai-wcf") {
+      // すぐに振り返り画面へ遷移し、右側で生成中UIを表示
+      if (!wcfText) {
+        setWcfText("");
+        setWcfLoading(true);
         setStep(5);
         setWlStart(Date.now());
-      });
+        generateWCF();
+      } else {
+        setStep(5);
+        setWlStart(Date.now());
+      }
     }
   }
 }, [step, condition, pretestText, wcfText, generateWCF]);
@@ -333,7 +344,11 @@ Making chocolate takes time, care, and skill, but the result is delicious.
                   }),
                 });
                 const data = await res.json();
-                setCondition(data.condition ?? null);
+                setCondition(
+                  data && data.condition
+                    ? String(data.condition).trim().toLowerCase()
+                    : null
+                );
                 setStep(1);
               } else {
                 alert("氏名、学籍番号、授業名をすべて入力してください。");
@@ -348,7 +363,16 @@ Making chocolate takes time, care, and skill, but the result is delicious.
       {/* Step 1 */}
       {step === 1 && (
         <div>
-          <p className="mb-4 text-lg font-semibold text-red-600">あなたは「{condition}」グループに割り振られました</p>
+          <p className="mb-4 text-lg font-semibold text-red-600">あなたは「{(() => {
+            const c = (condition || "").trim().toLowerCase();
+            return c === "control"
+              ? "見直し"
+              : c === "model text"
+              ? "模範解答"
+              : c === "ai-wcf"
+              ? "AIのフィードバック"
+              : condition;
+          })()}」グループに割り振られました</p>
           <h2 className="text-2xl font-semibold mb-4">英作文タスクの流れ</h2>
           <ol className="list-decimal pl-6 space-y-2">
             <li>ブレインストーミング (10分)</li>
@@ -432,77 +456,72 @@ Making chocolate takes time, care, and skill, but the result is delicious.
       )}
 
       {/* Step 5 振り返り */}
-{step === 5 && (
-  <div>
-    <h2 className="text-2xl font-semibold mb-4">振り返り</h2>
-
-    {condition === "Control" && (
-      <p className="mb-4 text-gray-700">
-        自身の英作文を読み返し、正しく書けているか確認してください。
-      </p>
-    )}
-    {condition === "Model text" && (
-      <p className="mb-4 text-gray-700">
-        自身の英作文とモデル文を比較して、どのように修正すべきか考えてください。
-      </p>
-    )}
-    {condition === "AI-WCF" && (
-      <p className="mb-4 text-gray-700">
-        自身の英作文とAIによるWCFを比較して、どのように修正すべきか考えてください。
-      </p>
-    )}
-
-    {/* レイアウト切り替え */}
-    <div
-      className={`mb-6 ${
-        condition?.toLowerCase() === "control"
-          ? "grid grid-cols-1"
-          : "grid grid-cols-2 gap-6"
-      }`}
-    >
-      {/* 左：元の文 */}
-      <div>
-        <h3 className="font-semibold mb-2">元の文 (Pre-Test)</h3>
-        <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">
-          {pretestText}
-        </div>
-      </div>
-
-      {/* 右：Model text / AI-WCF のみ */}
-      {condition?.toLowerCase() !== "control" && (
+      {step === 5 && (
         <div>
-          <h3 className="font-semibold mb-2">{condition}</h3>
-          <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">
-            {wcfText}
+          <h2 className="text-2xl font-semibold mb-4">振り返り</h2>
+          {condition?.trim().toLowerCase() === "control" && (
+            <p className="mb-4 text-gray-700">自身の英作文を読み返し、正しく書けているか確認してください。</p>
+          )}
+          {condition?.trim().toLowerCase() === "model text" && (
+            <p className="mb-4 text-gray-700">自身の英作文と模範解答を比較して、どのように修正すべきか考えてください。</p>
+          )}
+          {condition?.trim().toLowerCase() === "ai-wcf" && (
+            <p className="mb-4 text-gray-700">自身の英作文とAIのフィードバックを比較して、どのように修正すべきか考えてください。</p>
+          )}
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <div>
+              <h3 className="font-semibold mb-2">元の文</h3>
+              <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{pretestText}</div>
+            </div>
+            {condition?.trim().toLowerCase() !== "control" && (
+              <div>
+                <h3 className="font-semibold mb-2">
+                  {(() => {
+                    const c = (condition || "").trim().toLowerCase();
+                    return c === "control"
+                      ? "見直し"
+                      : c === "model text"
+                      ? "模範解答"
+                      : c === "ai-wcf"
+                      ? "AIのフィードバック"
+                      : condition;
+                  })()}
+                </h3>
+                {condition?.trim().toLowerCase() === "ai-wcf" && wcfLoading ? (
+                  <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white flex items-center justify-center text-gray-600">
+                    <div className="flex items-center space-x-3">
+                      <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      <span>フィードバックを作成中…</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{wcfText}</div>
+                )}
+              </div>
+            )}
           </div>
+          <p className="mb-2 text-gray-600">
+            残り時間:{" "}
+            {Math.max(0, 600 - wlTimer) > 0
+              ? `${Math.floor((600 - wlTimer) / 60)}:${String((600 - wlTimer) % 60).padStart(2, "0")}`
+              : "00:00"}
+          </p>
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={() => {
+              if (wlStart) setWlElapsed(Math.floor((Date.now() - wlStart) / 1000));
+              setPosttestStart(Date.now());
+              setStep(6);
+              saveProgress();
+            }}
+          >
+            次へ (英作文タスク)
+          </button>
         </div>
       )}
-    </div>
-
-    {/* 残り時間表示 */}
-    <p className="mb-2 text-gray-600">
-      残り時間:{" "}
-      {Math.max(0, 600 - wlTimer) > 0
-        ? `${Math.floor((600 - wlTimer) / 60)}:${String(
-            (600 - wlTimer) % 60
-          ).padStart(2, "0")}`
-        : "00:00"}
-    </p>
-
-    <button
-      className="bg-blue-500 text-white px-4 py-2 rounded"
-      onClick={() => {
-        if (wlStart) setWlElapsed(Math.floor((Date.now() - wlStart) / 1000));
-        setPosttestStart(Date.now());
-        setStep(6);
-        saveProgress();
-      }}
-    >
-      次へ (英作文タスク)
-    </button>
-  </div>
-)}
-
 
       {/* Step 6 */}
       {step === 6 && (
@@ -517,11 +536,11 @@ Making chocolate takes time, care, and skill, but the result is delicious.
           </p>
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <h3 className="font-semibold mb-2">前回の英作文 (Pre-Test)</h3>
+              <h3 className="font-semibold mb-2">元の文</h3>
               <div className="border p-2 h-96 overflow-y-auto whitespace-pre-line bg-white">{pretestText}</div>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">修正版の英作文 (Post-Test)</h3>
+              <h3 className="font-semibold mb-2">書き直し</h3>
               <textarea className="border p-2 w-full h-96" value={posttestText} onChange={(e) => setPosttestText(e.target.value)} />
               <p className="text-right mt-1 text-sm text-gray-500">単語数: {wordCount(posttestText)}</p>
             </div>
