@@ -13,7 +13,7 @@ export async function POST(req: Request) {
         _count: { condition: true },
       });
 
-      const conditions = ["Control", "Model text", "AI-WCF"];
+      const conditions = ["control", "model text", "ai-wcf"];
       const conditionCounts = conditions.map((c) => {
         const found = counts.find((item) => item.condition === c);
         return { condition: c, count: found?._count.condition ?? 0 };
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     // JSON に変換して返す（必ずシリアライズ可能にする）
     const safeParticipant = {
       ...participant,
-      condition: assignedCondition,
+      condition: assignedCondition.toLowerCase(),
       survey: participant.survey ? JSON.parse(JSON.stringify(participant.survey)) : {},
       wlEntries: participant.wlEntries ? JSON.parse(JSON.stringify(participant.wlEntries)) : [],
     };
