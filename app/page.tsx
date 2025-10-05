@@ -432,43 +432,77 @@ Making chocolate takes time, care, and skill, but the result is delicious.
       )}
 
       {/* Step 5 振り返り */}
-      {step === 5 && (
+{step === 5 && (
+  <div>
+    <h2 className="text-2xl font-semibold mb-4">振り返り</h2>
+
+    {condition === "Control" && (
+      <p className="mb-4 text-gray-700">
+        自身の英作文を読み返し、正しく書けているか確認してください。
+      </p>
+    )}
+    {condition === "Model text" && (
+      <p className="mb-4 text-gray-700">
+        自身の英作文とモデル文を比較して、どのように修正すべきか考えてください。
+      </p>
+    )}
+    {condition === "AI-WCF" && (
+      <p className="mb-4 text-gray-700">
+        自身の英作文とAIによるWCFを比較して、どのように修正すべきか考えてください。
+      </p>
+    )}
+
+    {/* レイアウト切り替え */}
+    <div
+      className={`mb-6 ${
+        condition?.toLowerCase() === "control"
+          ? "grid grid-cols-1"
+          : "grid grid-cols-2 gap-6"
+      }`}
+    >
+      {/* 左：元の文 */}
+      <div>
+        <h3 className="font-semibold mb-2">元の文 (Pre-Test)</h3>
+        <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">
+          {pretestText}
+        </div>
+      </div>
+
+      {/* 右：Model text / AI-WCF のみ */}
+      {condition?.toLowerCase() !== "control" && (
         <div>
-          <h2 className="text-2xl font-semibold mb-4">振り返り</h2>
-          {condition === "Control" && <p className="mb-4 text-gray-700">自身の英作文を読み返し、正しく書けているか確認してください。</p>}
-          {condition === "Model text" && <p className="mb-4 text-gray-700">自身の英作文とモデル文を比較して、どのように修正すべきか考えてください。</p>}
-          {condition === "AI-WCF" && <p className="mb-4 text-gray-700">自身の英作文とAIによるWCFを比較して、どのように修正すべきか考えてください。</p>}
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <h3 className="font-semibold mb-2">元の文 (Pre-Test)</h3>
-              <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{pretestText}</div>
-            </div>
-            {condition !== "Control" && (
-              <div>
-                <h3 className="font-semibold mb-2">{condition}</h3>
-                <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{wcfText}</div>
-              </div>
-            )}
+          <h3 className="font-semibold mb-2">{condition}</h3>
+          <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">
+            {wcfText}
           </div>
-          <p className="mb-2 text-gray-600">
-            残り時間:{" "}
-            {Math.max(0, 600 - wlTimer) > 0
-              ? `${Math.floor((600 - wlTimer) / 60)}:${String((600 - wlTimer) % 60).padStart(2, "0")}`
-              : "00:00"}
-          </p>
-          <button
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={() => {
-              if (wlStart) setWlElapsed(Math.floor((Date.now() - wlStart) / 1000));
-              setPosttestStart(Date.now());
-              setStep(6);
-              saveProgress();
-            }}
-          >
-            次へ (英作文タスク)
-          </button>
         </div>
       )}
+    </div>
+
+    {/* 残り時間表示 */}
+    <p className="mb-2 text-gray-600">
+      残り時間:{" "}
+      {Math.max(0, 600 - wlTimer) > 0
+        ? `${Math.floor((600 - wlTimer) / 60)}:${String(
+            (600 - wlTimer) % 60
+          ).padStart(2, "0")}`
+        : "00:00"}
+    </p>
+
+    <button
+      className="bg-blue-500 text-white px-4 py-2 rounded"
+      onClick={() => {
+        if (wlStart) setWlElapsed(Math.floor((Date.now() - wlStart) / 1000));
+        setPosttestStart(Date.now());
+        setStep(6);
+        saveProgress();
+      }}
+    >
+      次へ (英作文タスク)
+    </button>
+  </div>
+)}
+
 
       {/* Step 6 */}
       {step === 6 && (
