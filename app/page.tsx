@@ -180,22 +180,13 @@ useEffect(() => {
       setWlStart(Date.now());
     } else if (cond === "model text") {
       setWcfText(`
-Chocolate is one of the most popular sweets in the world.
-It is made from cacao beans through many careful steps.
+Chocolate is one of the most popular sweets in the world. It is made from cacao beans through many careful steps.
 
-First, farmers wait until the cacao pods are ripe.
-Then they harvest the pods and take out the cacao beans.
-The beans are dried in the sun and packed into a sack.
-After that, workers weigh the sacks and heave them onto trucks for transport to a factory.
+First, farmers wait until the cacao pods are ripe. Then they harvest the pods and take out the cacao beans. The beans are dried in the sun and packed into a sack. After that, workers weigh the sacks and heave them onto trucks for transport to a factory.
 
-At the factory, the beans are cleaned and roasted to bring out a rich smell.
-Then, the thin layer of shell is removed.
-The inside part is ground to pulverize the beans.
-Next, machines agitate the mixture to make it smooth and creamy.
-Finally, the chocolate is poured into a mold to give it its shape.
+At the factory, the beans are cleaned and roasted to bring out a rich smell. Then, the thin layer of shell is removed. The inside part is ground to pulverize the beans. Next, machines agitate the mixture to make it smooth and creamy. Finally, the chocolate is poured into a mold to give it its shape.
 
-After cooling, the chocolate is wrapped and ready to be enjoyed by people all over the world.
-Making chocolate takes time, care, and skill, but the result is delicious.
+After cooling, the chocolate is wrapped and ready to be enjoyed by people all over the world. Making chocolate takes time, care, and skill, but the result is delicious.
 `);
       setStep(5);
       setWlStart(Date.now());
