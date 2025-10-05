@@ -180,27 +180,37 @@ useEffect(() => {
       setWlStart(Date.now());
     } else if (cond === "model text") {
       setWcfText(`
-Chocolate is one of the most popular sweets in the world. It is made from cacao beans through many careful steps.
+Chocolate is one of the most popular sweets in the world.
+It is made from cacao beans through many careful steps.
 
-First, farmers wait until the cacao pods are ripe. Then they harvest the pods and take out the cacao beans. The beans are dried in the sun and packed into a sack. After that, workers weigh the sacks and heave them onto trucks for transport to a factory.
+First, farmers wait until the cacao pods are ripe.
+Then they harvest the pods and take out the cacao beans.
+The beans are dried in the sun and packed into a sack.
+After that, workers weigh the sacks and heave them onto trucks for transport to a factory.
 
-At the factory, the beans are cleaned and roasted to bring out a rich smell. Then, the thin layer of shell is removed. The inside part is ground to pulverize the beans. Next, machines agitate the mixture to make it smooth and creamy. Finally, the chocolate is poured into a mold to give it its shape.
+At the factory, the beans are cleaned and roasted to bring out a rich smell.
+Then, the thin layer of shell is removed.
+The inside part is ground to pulverize the beans.
+Next, machines agitate the mixture to make it smooth and creamy.
+Finally, the chocolate is poured into a mold to give it its shape.
 
-After cooling, the chocolate is wrapped and ready to be enjoyed by people all over the world. Making chocolate takes time, care, and skill, but the result is delicious.
+After cooling, the chocolate is wrapped and ready to be enjoyed by people all over the world.
+Making chocolate takes time, care, and skill, but the result is delicious.
 `);
       setStep(5);
       setWlStart(Date.now());
     } else if (cond === "ai-wcf") {
-      // すぐに振り返り画面へ遷移し、右側で生成中UIを表示
-      if (!wcfText) {
+      // Step 4で待機し、生成完了後にStep 5へ遷移
+      if (!wcfText && !wcfLoading) {
         setWcfText("");
         setWcfLoading(true);
-        setStep(5);
+        generateWCF().then(() => {
+          setWlStart(Date.now());
+          setStep(5);
+        });
+      } else if (wcfText) {
         setWlStart(Date.now());
-        generateWCF();
-      } else {
         setStep(5);
-        setWlStart(Date.now());
       }
     }
   }
@@ -443,6 +453,26 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
           >
             次へ (振り返り準備)
           </button>
+        </div>
+      )}
+
+      {/* Step 4 振り返り準備（AI-WCF待機） */}
+      {step === 4 && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">振り返りの準備</h2>
+          {condition?.trim().toLowerCase() === "ai-wcf" ? (
+            <div className="border p-6 bg-white text-gray-700 flex items-center justify-center">
+              <div className="flex items-center space-x-3">
+                <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                <span>AIのフィードバックを作成中… 少々お待ちください。</span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-700">次の画面を準備しています…</p>
+          )}
         </div>
       )}
 
