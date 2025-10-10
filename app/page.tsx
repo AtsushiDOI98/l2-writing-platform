@@ -117,7 +117,7 @@ export default function WritingPlatform() {
   }, [brainstormStart, pretestStart, wlStart, posttestStart]);
 
   // --- API保存処理 ---
-  const saveProgress = async () => {
+  const saveProgress = useCallback(async () => {
     if (!studentId) return;
     try {
       await fetch("/api/participant", {
@@ -144,7 +144,23 @@ export default function WritingPlatform() {
     } catch (error) {
       console.error("保存エラー:", error);
     }
-  };
+  }, [
+    studentId,
+    name,
+    className,
+    condition,
+    step,
+    brainstormText,
+    pretestText,
+    wcfText,
+    posttestText,
+    surveyAnswers,
+    wlEntries,
+    brainstormElapsed,
+    pretestElapsed,
+    wlElapsed,
+    posttestElapsed,
+  ]);
 
   // --- AI-WCF ---
   const generateWCF = useCallback(async () => {
@@ -168,6 +184,45 @@ export default function WritingPlatform() {
     }
   }, [pretestText]);
 
+  // --- ステップ遷移 ---
+  const goToPretest = useCallback(() => {
+    if (step !== 2) return;
+    if (brainstormStart) {
+      setBrainstormElapsed(Math.floor((Date.now() - brainstormStart) / 1000));
+    }
+    setPretestStart(Date.now());
+    setStep(3);
+    saveProgress();
+  }, [brainstormStart, saveProgress, step]);
+
+  const goToReflectionPreparation = useCallback(() => {
+    if (step !== 3) return;
+    if (pretestStart) {
+      setPretestElapsed(Math.floor((Date.now() - pretestStart) / 1000));
+    }
+    setStep(4);
+    saveProgress();
+  }, [pretestStart, saveProgress, step]);
+
+  const goToPosttest = useCallback(() => {
+    if (step !== 5) return;
+    if (wlStart) {
+      setWlElapsed(Math.floor((Date.now() - wlStart) / 1000));
+    }
+    setPosttestStart(Date.now());
+    setStep(6);
+    saveProgress();
+  }, [saveProgress, step, wlStart]);
+
+  const goToSurvey = useCallback(() => {
+    if (step !== 6) return;
+    if (posttestStart) {
+      setPosttestElapsed(Math.floor((Date.now() - posttestStart) / 1000));
+    }
+    setStep(7);
+    saveProgress();
+  }, [posttestStart, saveProgress, step]);
+
   // --- 条件処理 ---
 useEffect(() => {
   if (step === 4 && condition) {
@@ -180,13 +235,22 @@ useEffect(() => {
       setWlStart(Date.now());
     } else if (cond === "model text") {
       setWcfText(`
-Chocolate is one of the most popular sweets in the world. It is made from cacao beans through many careful steps.
+Chocolate is one of the most popular sweets in the world.
+It is made from cacao beans through many careful steps.
 
-First, farmers wait until the cacao pods are ripe. Then they harvest the pods and take out the cacao beans. The beans are dried in the sun and packed into a sack. After that, workers weigh the sacks and heave them onto trucks for transport to a factory.
+First, farmers wait until the cacao pods are ripe.
+Then they harvest the pods and take out the cacao beans.
+The beans are dried in the sun and packed into a sack.
+After that, workers weigh the sacks and heave them onto trucks for transport to a factory.
 
-At the factory, the beans are cleaned and roasted to bring out a rich smell. Then, the thin layer of shell is removed. The inside part is ground to pulverize the beans. Next, machines agitate the mixture to make it smooth and creamy. Finally, the chocolate is poured into a mold to give it its shape.
+At the factory, the beans are cleaned and roasted to bring out a rich smell.
+Then, the thin layer of shell is removed.
+The inside part is ground to pulverize the beans.
+Next, machines agitate the mixture to make it smooth and creamy.
+Finally, the chocolate is poured into a mold to give it its shape.
 
-After cooling, the chocolate is wrapped and ready to be enjoyed by people all over the world. Making chocolate takes time, care, and skill, but the result is delicious.
+After cooling, the chocolate is wrapped and ready to be enjoyed by people all over the world.
+Making chocolate takes time, care, and skill, but the result is delicious.
 `);
       setStep(5);
       setWlStart(Date.now());
@@ -206,6 +270,31 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
     }
   }
 }, [step, condition, pretestText, wcfText, generateWCF]);
+
+  // --- タイマー終了時の自動遷移 ---
+  useEffect(() => {
+    if (step === 2 && brainstormStart && brainstormTimer >= 600) {
+      goToPretest();
+    }
+  }, [brainstormStart, brainstormTimer, goToPretest, step]);
+
+  useEffect(() => {
+    if (step === 3 && pretestStart && pretestTimer >= 1800) {
+      goToReflectionPreparation();
+    }
+  }, [goToReflectionPreparation, pretestStart, pretestTimer, step]);
+
+  useEffect(() => {
+    if (step === 5 && wlStart && wlTimer >= 600) {
+      goToPosttest();
+    }
+  }, [goToPosttest, step, wlStart, wlTimer]);
+
+  useEffect(() => {
+    if (step === 6 && posttestStart && posttestTimer >= 1800) {
+      goToSurvey();
+    }
+  }, [goToSurvey, posttestStart, posttestTimer, step]);
 
   // --- 単語数 ---
   const wordCount = (text: string) => {
@@ -400,12 +489,7 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
           <textarea className="border p-2 w-full h-96" value={brainstormText} onChange={(e) => setBrainstormText(e.target.value)} />
           <button
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={() => {
-              if (brainstormStart) setBrainstormElapsed(Math.floor((Date.now() - brainstormStart) / 1000));
-              setPretestStart(Date.now());
-              setStep(3);
-              saveProgress();
-            }}
+            onClick={goToPretest}
           >
             次へ (英作文タスク)
           </button>
@@ -436,11 +520,7 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
           </div>
           <button
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={() => {
-              if (pretestStart) setPretestElapsed(Math.floor((Date.now() - pretestStart) / 1000));
-              setStep(4);
-              saveProgress();
-            }}
+            onClick={goToReflectionPreparation}
           >
             次へ (振り返り準備)
           </button>
@@ -523,12 +603,7 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
           </p>
           <button
             className="bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={() => {
-              if (wlStart) setWlElapsed(Math.floor((Date.now() - wlStart) / 1000));
-              setPosttestStart(Date.now());
-              setStep(6);
-              saveProgress();
-            }}
+            onClick={goToPosttest}
           >
             次へ (英作文タスク)
           </button>
@@ -559,11 +634,7 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
           </div>
           <button
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={() => {
-              if (posttestStart) setPosttestElapsed(Math.floor((Date.now() - posttestStart) / 1000));
-              setStep(7);
-              saveProgress();
-            }}
+            onClick={goToSurvey}
           >
             次へ (アンケート)
           </button>
