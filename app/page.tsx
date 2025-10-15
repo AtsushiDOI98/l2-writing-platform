@@ -503,7 +503,7 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
       {step === 3 && (
         <div>
           <h3 className="font-semibold mb-2">英作文タスク (30分)</h3>
-          <p className="mb-4 text-gray-700">別紙の英作文タスクと自身のブレインストーミングを参照し、英作文を書いてください。</p>
+          <p className="mb-4 text-gray-700">別紙の英作文タスクと自身のブレインストーミングを参照し、英作文を書いてください。その際、機械翻訳や生成AIは使用しないでください。</p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
             {Math.max(0, 1800 - pretestTimer) > 0
@@ -617,7 +617,7 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
       {step === 6 && (
         <div>
           <h3 className="font-semibold mb-2">英作文タスク (30分)</h3>
-          <p className="mb-4 text-gray-700">自身が書いた英作文を参照し、書き直してください。</p>
+          <p className="mb-4 text-gray-700">自身が書いた英作文を参照し、書き直してください。その際、機械翻訳や生成AIは使用しないでください。</p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
             {Math.max(0, 1800 - posttestTimer) > 0
@@ -639,7 +639,7 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
             onClick={goToSurveyInstructions}
           >
-            次へ
+            次へ(担当者の指示)
           </button>
         </div>
       )}
