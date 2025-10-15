@@ -639,7 +639,7 @@ After cooling, the chocolate is wrapped and ready to be enjoyed by people all ov
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
             onClick={goToSurveyInstructions}
           >
-            次へ (アンケート)
+            次へ
           </button>
         </div>
       )}
