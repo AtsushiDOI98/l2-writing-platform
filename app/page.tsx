@@ -62,6 +62,7 @@ export default function WritingPlatform() {
       pretestElapsed,
       wlElapsed,
       posttestElapsed,
+      stateVersion: 2,
     };
     localStorage.setItem("writingPlatformState", JSON.stringify(state));
   }, [
@@ -87,7 +88,12 @@ export default function WritingPlatform() {
     const saved = localStorage.getItem("writingPlatformState");
     if (saved) {
       const parsed = JSON.parse(saved);
-      setStep(parsed.step ?? 0);
+      const version = parsed.stateVersion ?? 1;
+      let restoredStep = parsed.step ?? 0;
+      if (version < 2 && typeof restoredStep === "number" && restoredStep >= 7) {
+        restoredStep += 1;
+      }
+      setStep(restoredStep);
       setName(parsed.name ?? "");
       setStudentId(parsed.studentId ?? "");
       setClassName(parsed.className ?? "");
@@ -214,7 +220,7 @@ export default function WritingPlatform() {
     saveProgress();
   }, [saveProgress, step, wlStart]);
 
-  const goToSurvey = useCallback(() => {
+  const goToSurveyInstructions = useCallback(() => {
     if (step !== 6) return;
     if (posttestStart) {
       setPosttestElapsed(Math.floor((Date.now() - posttestStart) / 1000));
@@ -222,6 +228,12 @@ export default function WritingPlatform() {
     setStep(7);
     saveProgress();
   }, [posttestStart, saveProgress, step]);
+
+  const goToSurvey = useCallback(() => {
+    if (step !== 7) return;
+    setStep(8);
+    saveProgress();
+  }, [saveProgress, step]);
 
   // --- 条件処理 ---
 useEffect(() => {
@@ -235,22 +247,13 @@ useEffect(() => {
       setWlStart(Date.now());
     } else if (cond === "model text") {
       setWcfText(`
-Chocolate is one of the most popular sweets in the world.
-It is made from cacao beans through many careful steps.
+Chocolate is one of the most popular sweets in the world. It is made from cacao beans through many careful steps.
 
-First, farmers wait until the cacao pods are ripe.
-Then they harvest the pods and take out the cacao beans.
-The beans are dried in the sun and packed into a sack.
-After that, workers weigh the sacks and heave them onto trucks for transport to a factory.
+First, farmers wait until the cacao pods are ripe. Then they harvest the pods and take out the cacao beans. The beans are dried in the sun and packed into a sack. After that, workers weigh the sacks and heave them onto trucks for transport to a factory.
 
-At the factory, the beans are cleaned and roasted to bring out a rich smell.
-Then, the thin layer of shell is removed.
-The inside part is ground to pulverize the beans.
-Next, machines agitate the mixture to make it smooth and creamy.
-Finally, the chocolate is poured into a mold to give it its shape.
+At the factory, the beans are cleaned and roasted to bring out a rich smell. Then, the thin layer of shell is removed. The inside part is ground to pulverize the beans. Next, machines agitate the mixture to make it smooth and creamy. Finally, the chocolate is poured into a mold to give it its shape.
 
-After cooling, the chocolate is wrapped and ready to be enjoyed by people all over the world.
-Making chocolate takes time, care, and skill, but the result is delicious.
+After cooling, the chocolate is wrapped and ready to be enjoyed by people all over the world. Making chocolate takes time, care, and skill, but the result is delicious.
 `);
       setStep(5);
       setWlStart(Date.now());
@@ -292,9 +295,9 @@ Making chocolate takes time, care, and skill, but the result is delicious.
 
   useEffect(() => {
     if (step === 6 && posttestStart && posttestTimer >= 1800) {
-      goToSurvey();
+      goToSurveyInstructions();
     }
-  }, [goToSurvey, posttestStart, posttestTimer, step]);
+  }, [goToSurveyInstructions, posttestStart, posttestTimer, step]);
 
   // --- 単語数 ---
   const wordCount = (text: string) => {
@@ -634,15 +637,29 @@ Making chocolate takes time, care, and skill, but the result is delicious.
           </div>
           <button
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={goToSurvey}
+            onClick={goToSurveyInstructions}
           >
             次へ (アンケート)
           </button>
         </div>
       )}
 
-      {/* Step 7 アンケート */}
+      {/* Step 7 指示画面 */}
       {step === 7 && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">次のステップに進む前に</h2>
+          <p className="mb-6 text-gray-700">担当者の指示に従ってください。</p>
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+            onClick={goToSurvey}
+          >
+            アンケートへ進む
+          </button>
+        </div>
+      )}
+
+      {/* Step 8 アンケート */}
+      {step === 8 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">アンケート</h2>
           <p>以下の各項目について、<strong>1（全くそう思わない）～5（非常にそう思う）</strong> で答えてください。</p>
@@ -676,7 +693,7 @@ Making chocolate takes time, care, and skill, but the result is delicious.
               if (answeredCount < totalQuestions) {
                 alert("すべての質問に回答してください。");
               } else {
-                setStep(8);
+                setStep(9);
                 saveProgress();
               }
             }}
@@ -686,8 +703,8 @@ Making chocolate takes time, care, and skill, but the result is delicious.
         </div>
       )}
 
-      {/* Step 8 完了 */}
-      {step === 8 && (
+      {/* Step 9 完了 */}
+      {step === 9 && (
         <div>
           <h2 className="text-2xl font-semibold">完了</h2>
           <p className="mb-4">すべてのステップが完了しました。以下のボタンからデータをダウンロードしてください。</p>
@@ -699,3 +716,4 @@ Making chocolate takes time, care, and skill, but the result is delicious.
     </div>
   );
 }
+
