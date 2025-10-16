@@ -176,7 +176,6 @@ export async function POST(req: Request) {
   const completion = await client.chat.completions.create({
     model: "gpt-5",
     messages,
-    temperature: 0.3,
   });
 
   return NextResponse.json({ result: completion.choices[0].message.content });
