@@ -129,17 +129,15 @@ export async function POST(req: Request) {
       He or she wrote it based on the 15 steps to make chocolate as shown in the provided picture. 
       
       I would like you to rewrite the essay into an improved version. 
-      Present only the improved essay. You do not have to provide explanations.
+      Present the improved essay only. You do not have to provide explanations.
 
-      You must use each word from the word list exactly once in the improved essay. 
+      You must use each word from the word list in the improved essay. 
       Do not skip or omit any word. Even if the learner’s essay skips a certain step, 
       add a sentence that describes it using the appropriate word.
 
       Follow the sequence of steps shown in the provided images. 
       Each word must be placed in the step where it belongs in the chocolate-making process. 
       Do not use a word into an incorrect step.
-
-      After rewriting, double-check that all words in the word list are included exactly once.
 
       Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, mold`,
     },
