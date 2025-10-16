@@ -252,6 +252,7 @@ Chocolate is one of the most popular sweets in the world, but making it takes ma
 At the factory, the beans are roasted to give them a good smell. Next, the outer layer is removed, and the inside part is pulverized into fine powder. The powder is then mixed and agitated with other ingredients, such as sugar and milk, to make a smooth liquid. Finally, the liquid chocolate is poured into a mold and left to cool.
 
 After these fifteen steps, the chocolate is ready to eat. Making chocolate is hard work, but it is worth it because the result is delicious.
+
 `);
       setStep(5);
       setWlStart(Date.now());
