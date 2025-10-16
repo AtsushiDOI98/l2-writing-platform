@@ -132,7 +132,7 @@ export async function POST(req: Request) {
       Present only the improved essay. You do not have to provide explanations.
 
       You must use each word from the word list exactly once in the improved essay. 
-      Do not skip or omit any word. Even if the learner’s essay does not mention a process, 
+      Do not skip or omit any word. Even if the learner’s essay skips a certain step, 
       add a sentence that describes it using the appropriate word.
 
       Follow the sequence of steps shown in the provided images. 
