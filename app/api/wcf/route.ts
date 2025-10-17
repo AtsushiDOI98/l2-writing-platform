@@ -11,22 +11,22 @@ const DEFAULT_BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL || "https://l2-writing-platform.onrender.com";
 
 const TASK_IMAGE_URLS: readonly string[] = [
-  "/task-pages/01-ripe.png",
-  "/task-pages/02-harvest.png",
-  "/task-pages/03.png",
-  "/task-pages/04.png",
-  "/task-pages/05.png",
-  "/task-pages/06-sack.png",
-  "/task-pages/07-weigh.png",
-  "/task-pages/08-heave.png",
-  "/task-pages/09.png",
-  "/task-pages/10.png",
-  "/task-pages/11-roast.png",
-  "/task-pages/12-layer.png",
-  "/task-pages/13-pulverize.png",
-  "/task-pages/14-agitate.png",
-  "/task-pages/15-mold.png",
-  "/task-pages/16.png",
+  "/task-images/01-ripe.png",
+  "/task-images/02-harvest.png",
+  "/task-images/03.png",
+  "/task-images/04.png",
+  "/task-images/05.png",
+  "/task-images/06-sack.png",
+  "/task-images/07-weigh.png",
+  "/task-images/08-heave.png",
+  "/task-images/09.png",
+  "/task-images/10.png",
+  "/task-images/11-roast.png",
+  "/task-images/12-layer.png",
+  "/task-images/13-pulverize.png",
+  "/task-images/14-agitate.png",
+  "/task-images/15-mold.png",
+  "/task-images/16.png",
 ];
 
 // ファイル存在確認
