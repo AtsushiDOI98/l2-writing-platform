@@ -179,8 +179,6 @@ export async function POST(req: Request) {
   client.chat.completions.create({
     model: "gpt-5",
     messages,
-    temperature: 0,
-    presence_penalty: 0
   })
 );
 
