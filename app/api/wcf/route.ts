@@ -168,7 +168,7 @@ export async function POST(req: Request) {
     client.chat.completions.create({
       model: "gpt-5",
       messages,
-      max_tokens: 400,
+      max_completion_tokens: 400,
     })
   );
 
