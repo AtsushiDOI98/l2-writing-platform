@@ -5,6 +5,7 @@ import OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
 import fs from "fs/promises";
 import path from "path";
+import pLimit from "p-limit"; 
 
 // ファイル存在確認
 async function fileExists(p: string) {
@@ -85,7 +86,7 @@ async function loadTaskContext(): Promise<string> {
 // Task images loader (URL ベース, task-images フォルダ対応)
 async function loadTaskImages(maxImages = 15): Promise<{ url: string }[]> {
   const publicDir = path.join(process.cwd(), "public");
-  const pagesDir = path.join(publicDir, "task-images"); // 
+  const pagesDir = path.join(publicDir, "task-images"); 
   const exts = new Set([".png", ".jpg", ".jpeg"]);
   const out: { url: string }[] = [];
   try {
@@ -110,6 +111,7 @@ async function loadTaskImages(maxImages = 15): Promise<{ url: string }[]> {
 
 export async function POST(req: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
+  const limit = pLimit(5);
   if (!apiKey) {
     return NextResponse.json(
       { error: "Server misconfigured: OPENAI_API_KEY is missing" },
@@ -173,12 +175,16 @@ export async function POST(req: Request) {
     messages.push({ role: "user", content: text });
   }
 
-  const completion = await client.chat.completions.create({
-    model: "gpt-5-mini",
+  const completion = await limit(() =>
+  client.chat.completions.create({
+    model: "gpt-5",
     messages,
-    presence_penalty: 0,
-  });
+    temperature: 0,
+    presence_penalty: 0
+  })
+);
 
-  return NextResponse.json({ result: completion.choices[0].message.content });
+return NextResponse.json({ result: completion.choices[0].message.content });
 }
+
 
