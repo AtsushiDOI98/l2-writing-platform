@@ -111,7 +111,7 @@ async function loadTaskImages(maxImages = 15): Promise<{ url: string }[]> {
 
 export async function POST(req: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
-  const limit = pLimit(5);
+  const limit = pLimit(3);
   if (!apiKey) {
     return NextResponse.json(
       { error: "Server misconfigured: OPENAI_API_KEY is missing" },
