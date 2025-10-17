@@ -84,7 +84,7 @@ async function loadTaskContext(): Promise<string> {
 }
 
 // Task images loader (URL ベース, task-images フォルダ対応)
-async function loadTaskImages(maxImages = 15): Promise<{ url: string }[]> {
+async function loadTaskImages(maxImages = 16): Promise<{ url: string }[]> {
   const publicDir = path.join(process.cwd(), "public");
   const pagesDir = path.join(publicDir, "task-images"); 
   const exts = new Set([".png", ".jpg", ".jpeg"]);
@@ -179,11 +179,11 @@ export async function POST(req: Request) {
   client.chat.completions.create({
     model: "gpt-5",
     messages,
-    max_completion_tokens: 400,
   })
 );
 
 return NextResponse.json({ result: completion.choices[0].message.content });
 }
+
 
 
