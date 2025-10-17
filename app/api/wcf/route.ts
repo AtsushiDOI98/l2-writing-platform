@@ -1,36 +1,42 @@
-// app/api/wcf/route.ts
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
 import fs from "fs/promises";
 import path from "path";
-import pLimit from "p-limit"; 
+import pLimit from "p-limit";
 
+//
+// ✅ Cloudflare Pages CDNに対応
+//
 const DEFAULT_BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "https://l2-writing-platform.onrender.com";
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  "https://l2-writing-platform.pages.dev/task-images";
 
 const TASK_IMAGE_URLS: readonly string[] = [
-  "/task-images/01-ripe.png",
-  "/task-images/02-harvest.png",
-  "/task-images/03.png",
-  "/task-images/04.png",
-  "/task-images/05.png",
-  "/task-images/06-sack.png",
-  "/task-images/07-weigh.png",
-  "/task-images/08-heave.png",
-  "/task-images/09.png",
-  "/task-images/10.png",
-  "/task-images/11-roast.png",
-  "/task-images/12-layer.png",
-  "/task-images/13-pulverize.png",
-  "/task-images/14-agitate.png",
-  "/task-images/15-mold.png",
-  "/task-images/16.png",
+  "01-ripe.png",
+  "02-harvest.png",
+  "03.png",
+  "04.png",
+  "05.png",
+  "06-sack.png",
+  "07-weigh.png",
+  "08-heave.png",
+  "09.png",
+  "10.png",
+  "11-roast.png",
+  "12-layer.png",
+  "13-pulverize.png",
+  "14-agitate.png",
+  "15-mold.png",
+  "16.png",
 ];
 
-// ファイル存在確認
+//
+// ファイル存在確認（Cloudflare上では常にfalse扱い）
+//
 async function fileExists(p: string) {
+  if (process.env.CF_PAGES === "1") return false; // ✅ Cloudflare PagesではローカルI/O禁止
   try {
     await fs.access(p);
     return true;
@@ -41,19 +47,45 @@ async function fileExists(p: string) {
 
 let TASK_CONTEXT_CACHE: string | null = null;
 
+//
 // タスクコンテキスト読み込み
+//
 async function loadTaskContext(): Promise<string> {
   if (TASK_CONTEXT_CACHE !== null) return TASK_CONTEXT_CACHE;
+
   const inline = process.env.TASK_CONTEXT_TEXT;
   if (inline && inline.trim()) {
     TASK_CONTEXT_CACHE = inline.trim();
     return TASK_CONTEXT_CACHE;
   }
 
+  //
+  // ✅ Cloudflare Pagesではfetchで読み込みに切り替え
+  //
+  if (process.env.CF_PAGES === "1") {
+    try {
+      const txtUrl = `${DEFAULT_BASE_URL.replace("/task-images", "")}/task-context.txt`;
+      const res = await fetch(txtUrl);
+      if (res.ok) {
+        const text = await res.text();
+        TASK_CONTEXT_CACHE = text;
+        return text;
+      }
+    } catch {
+      TASK_CONTEXT_CACHE = "";
+      return "";
+    }
+  }
+
+  //
+  // ✅ Render/Vercelなど通常Node環境では従来通りファイル読み込み
+  //
   const resolvePath = (p: string) =>
     path.isAbsolute(p) ? p : path.join(process.cwd(), p);
 
-  const envPath = process.env.TASK_CONTEXT_PATH ? resolvePath(process.env.TASK_CONTEXT_PATH) : null;
+  const envPath = process.env.TASK_CONTEXT_PATH
+    ? resolvePath(process.env.TASK_CONTEXT_PATH)
+    : null;
   const publicDir = path.join(process.cwd(), "public");
   const defaultTxt = path.join(publicDir, "task-context.txt");
   const defaultPdf = path.join(publicDir, "task.pdf");
@@ -101,6 +133,7 @@ async function loadTaskContext(): Promise<string> {
     TASK_CONTEXT_CACHE = pdf;
     return pdf;
   }
+
   TASK_CONTEXT_CACHE = "";
   return "";
 }
@@ -108,12 +141,14 @@ async function loadTaskContext(): Promise<string> {
 export async function POST(req: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   const limit = pLimit(3);
+
   if (!apiKey) {
     return NextResponse.json(
       { error: "Server misconfigured: OPENAI_API_KEY is missing" },
       { status: 500 }
     );
   }
+
   const client = new OpenAI({ apiKey });
   const { text } = await req.json();
 
@@ -124,20 +159,20 @@ export async function POST(req: Request) {
     {
       role: "system",
       content: `This is an essay written by English as foreign language (EFL) learner.
-      He or she wrote it based on the 15 steps to make chocolate as shown in the provided picture. 
+He or she wrote it based on the 15 steps to make chocolate as shown in the provided picture. 
       
-      I would like you to rewrite the essay into an improved version. 
-      Present the improved essay only. You do not have to provide explanations.
+I would like you to rewrite the essay into an improved version. 
+Present the improved essay only. You do not have to provide explanations.
 
-      You must use each word from the word list in the improved essay. 
-      Do not skip or omit any word. Even if the learner’s essay skips a certain step, 
-      add a sentence that describes it using the appropriate word.
+You must use each word from the word list in the improved essay. 
+Do not skip or omit any word. Even if the learner’s essay skips a certain step, 
+add a sentence that describes it using the appropriate word.
 
-      Follow the sequence of steps shown in the provided images. 
-      Each word must be placed in the step where it belongs in the chocolate-making process. 
-      Do not use a word into an incorrect step.
+Follow the sequence of steps shown in the provided images. 
+Each word must be placed in the step where it belongs in the chocolate-making process. 
+Do not use a word into an incorrect step.
 
-      Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, mold`,
+Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, mold`,
     },
   ];
 
@@ -153,10 +188,10 @@ export async function POST(req: Request) {
 
   if (TASK_IMAGE_URLS.length > 0) {
     const parts: ChatCompletionContentPart[] = [{ type: "text", text }];
-    for (const url of TASK_IMAGE_URLS) {
+    for (const file of TASK_IMAGE_URLS) {
       parts.push({
         type: "image_url",
-        image_url: { url: `${DEFAULT_BASE_URL}${url}` },
+        image_url: { url: `${DEFAULT_BASE_URL}/${file}` },
       });
     }
     messages.push({ role: "user", content: parts });
@@ -174,6 +209,4 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ result: completion.choices[0].message.content });
 }
-
-
 
