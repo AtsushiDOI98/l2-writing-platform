@@ -178,7 +178,7 @@ export async function POST(req: Request) {
   const completion = await limit(() =>
   client.chat.completions.create({
     model: "gpt-5",
-    messages:,
+    messages,
     max_output_tokens: 400,
   })
 );
