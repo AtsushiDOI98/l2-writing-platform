@@ -1,0 +1,7 @@
+services:
+  - type: cron
+    name: warmup-job
+    env: docker
+    schedule: "0 0 * * *"
+    buildCommand: ""
+    startCommand: "./warmup.sh"
