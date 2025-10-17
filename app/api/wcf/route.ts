@@ -176,7 +176,6 @@ export async function POST(req: Request) {
   const completion = await client.chat.completions.create({
     model: "gpt-5-mini",
     messages,
-    temperature: 0,
     presence_penalty: 0,
   });
 
