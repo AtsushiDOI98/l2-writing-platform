@@ -7,6 +7,28 @@ import fs from "fs/promises";
 import path from "path";
 import pLimit from "p-limit"; 
 
+const DEFAULT_BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL || "https://l2-writing-platform.onrender.com";
+
+const TASK_IMAGE_URLS: readonly string[] = [
+  "/task-pages/01-ripe.png",
+  "/task-pages/02-harvest.png",
+  "/task-pages/03.png",
+  "/task-pages/04.png",
+  "/task-pages/05.png",
+  "/task-pages/06-sack.png",
+  "/task-pages/07-weigh.png",
+  "/task-pages/08-heave.png",
+  "/task-pages/09.png",
+  "/task-pages/10.png",
+  "/task-pages/11-roast.png",
+  "/task-pages/12-layer.png",
+  "/task-pages/13-pulverize.png",
+  "/task-pages/14-agitate.png",
+  "/task-pages/15-mold.png",
+  "/task-pages/16.png",
+];
+
 // ファイル存在確認
 async function fileExists(p: string) {
   try {
@@ -83,32 +105,6 @@ async function loadTaskContext(): Promise<string> {
   return "";
 }
 
-// Task images loader (URL ベース, task-images フォルダ対応)
-async function loadTaskImages(maxImages = 16): Promise<{ url: string }[]> {
-  const publicDir = path.join(process.cwd(), "public");
-  const pagesDir = path.join(publicDir, "task-images"); 
-  const exts = new Set([".png", ".jpg", ".jpeg"]);
-  const out: { url: string }[] = [];
-  try {
-    await fs.access(pagesDir);
-  } catch {
-    return out;
-  }
-  const files = (await fs.readdir(pagesDir))
-    .filter((f) => exts.has(path.extname(f).toLowerCase()))
-    .sort((a, b) => {
-      const na = (a.match(/\d+/)?.[0] ?? "");
-      const nb = (b.match(/\d+/)?.[0] ?? "");
-      return na && nb ? Number(na) - Number(nb) : a.localeCompare(b);
-    })
-    .slice(0, maxImages);
-
-  for (const f of files) {
-    out.push({ url: `/task-images/${f}` }); // 
-  }
-  return out;
-}
-
 export async function POST(req: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   const limit = pLimit(3);
@@ -155,34 +151,28 @@ export async function POST(req: Request) {
     });
   }
 
-  const taskImages = await loadTaskImages();
-  console.log("Loaded image URLs:", taskImages.map(i => i.url));
-
-  if (taskImages.length > 0) {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://l2-writing-platform.onrender.com";
-    const parts: ChatCompletionContentPart[] = [
-      { type: "text", text },
-      ...taskImages.map(
-        (img) =>
-          ({
-            type: "image_url",
-            image_url: { url: `${baseUrl}${img.url}` },
-          } as ChatCompletionContentPart)
-      ),
-    ];
+  if (TASK_IMAGE_URLS.length > 0) {
+    const parts: ChatCompletionContentPart[] = [{ type: "text", text }];
+    for (const url of TASK_IMAGE_URLS) {
+      parts.push({
+        type: "image_url",
+        image_url: { url: `${DEFAULT_BASE_URL}${url}` },
+      });
+    }
     messages.push({ role: "user", content: parts });
   } else {
     messages.push({ role: "user", content: text });
   }
 
   const completion = await limit(() =>
-  client.chat.completions.create({
-    model: "gpt-5-mini",
-    messages,
-  })
-);
+    client.chat.completions.create({
+      model: "gpt-5",
+      messages,
+      max_tokens: 400,
+    })
+  );
 
-return NextResponse.json({ result: completion.choices[0].message.content });
+  return NextResponse.json({ result: completion.choices[0].message.content });
 }
 
 
