@@ -3,8 +3,11 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import type {
+  ChatCompletion,
   ChatCompletionContentPart,
+  ChatCompletionContentPartText,
   ChatCompletionMessageParam,
+  ChatCompletionMessage,
 } from "openai/resources/chat/completions";
 import fs from "fs/promises";
 import path from "path";
@@ -145,34 +148,67 @@ async function loadTaskContext(): Promise<string> {
 
 async function callOpenAIWithRetry(
   client: OpenAI,
-  payload: any,
-  retries = 3
-): Promise<any> {
-  for (let attempt = 1; attempt <= retries; attempt++) {
+  payload: Parameters<OpenAI["chat"]["completions"]["create"]>[0],
+  retries = 2
+): Promise<ChatCompletion> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const result = await client.chat.completions.create(payload);
-      return result;
+      return await client.chat.completions.create(payload);
     } catch (error: any) {
-      const code = error?.code || "";
-      const msg = error?.message || "";
+      const code = typeof error?.code === "string" ? error.code : "";
+      const message = typeof error?.message === "string" ? error.message : "";
+      const retriable =
+        code === "invalid_image_url" ||
+        message.includes("invalid_image_url") ||
+        message.includes("Failed to download image") ||
+        message.includes("timed out") ||
+        message.includes("fetch failed");
 
-      if (
-        attempt < retries &&
-        (code === "invalid_image_url" ||
-          msg.includes("Failed to download image") ||
-          msg.includes("timed out") ||
-          msg.includes("fetch failed"))
-      ) {
-        console.warn(
-          `⚠️ [Retry ${attempt}/${retries}] OpenAI image fetch failed: ${msg}`
-        );
-        await new Promise((r) => setTimeout(r, 1000 * attempt)); // バックオフ
-        continue;
+      if (!retriable || attempt === retries) {
+        throw error;
       }
 
-      throw error;
+      console.warn(
+        `⚠️ [Retry ${attempt + 1}/${retries + 1}] OpenAI request failed: ${message}`
+      );
+      await new Promise((res) => setTimeout(res, 1000 * (attempt + 1)));
     }
   }
+
+  throw new Error("OpenAI request retry loop exhausted");
+}
+
+function extractAssistantText(completion: ChatCompletion): string {
+  const choice = completion.choices?.[0];
+  if (!choice) return "No response";
+
+  const fromMessage = extractFromMessage(choice.message);
+  if (fromMessage) return fromMessage;
+
+  const fromDelta = choice.delta
+    ? extractFromMessage(choice.delta as ChatCompletionMessage)
+    : "";
+  if (fromDelta) return fromDelta;
+
+  return "No response";
+}
+
+function extractFromMessage(message: ChatCompletionMessage | undefined): string {
+  if (!message) return "";
+
+  if (typeof message.content === "string") {
+    return message.content.trim();
+  }
+
+  if (Array.isArray(message.content)) {
+    const parts = message.content
+      .filter((part): part is ChatCompletionContentPartText => part.type === "text")
+      .map((part) => part.text?.trim())
+      .filter(Boolean);
+    return parts.join("\n");
+  }
+
+  return "";
 }
 
 // --- メインエンドポイント --------------------------------------------
@@ -194,10 +230,11 @@ export async function POST(req: Request) {
   const taskContextRaw = await loadTaskContext();
   const taskContext = taskContextRaw ? taskContextRaw.slice(0, 8000) : "";
 
+  // --- OpenAIに送るメッセージ構築 ---
   const messages: ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content: `This is an essay written by an English as a foreign language (EFL) learner.
+      content: `This is an essay written by English as foreign language (EFL) learner.
 He or she wrote it based on the 15 steps to make chocolate as shown in the provided picture. 
       
 I would like you to rewrite the essay into an improved version. 
@@ -238,61 +275,22 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
     messages.push({ role: "user", content: text });
   }
 
-  // --- OpenAI呼び出し ---
+  // --- API呼び出し ---
   try {
     const completion = await limit(() =>
-      callOpenAIWithRetry(
-        client,
-        {
-          model: "gpt-5",
-          messages,
-          max_completion_tokens: 400,
-        },
-        3
-      )
+      callOpenAIWithRetry(client, {
+        model: "gpt-5",
+        messages,
+      })
     );
 
-       // ✅ GPT-5 多層フォールバック対応（最終版）
-    const choice = completion?.choices?.[0];
-    let resultText = "";
-
-    // 1️⃣ 新形式 (message.content が配列)
-    if (Array.isArray(choice?.message?.content)) {
-      resultText = choice.message.content
-        .map((c: any) => c?.text ?? "")
-        .join("\n")
-        .trim();
-    }
-
-    // 2️⃣ 通常形式
-    if (!resultText && typeof choice?.message?.content === "string") {
-      resultText = choice.message.content.trim();
-    }
-
-    // 3️⃣ output_text / output_message / output / response など多段フォールバック
-    resultText =
-      resultText ||
-      (completion as any)?.output_text?.trim?.() ||
-      (completion as any)?.output?.[0]?.content?.[0]?.text?.trim?.() ||
-      (completion as any)?.output_message?.content?.[0]?.text?.trim?.() ||
-      (completion as any)?.response?.output_text?.trim?.() ||
-      (completion as any)?.response?.output?.[0]?.content?.[0]?.text?.trim?.() ||
-      (completion as any)?.response?.message?.content?.trim?.() ||
-      "";
-
-    // 4️⃣ 念のため JSON.stringify デバッグ形式も検査
-    if (!resultText && completion?.choices?.[0]) {
-      resultText = JSON.stringify(completion.choices[0]);
-    }
-
-    if (!resultText) {
-      console.warn("⚠️ OpenAI returned an empty response:", completion);
-      return NextResponse.json(
-        { error: "OpenAI returned an empty response.", detail: completion },
-        { status: 502 }
-      );
-    }
-
-    console.log("✅ OpenAI response received, length:", resultText.length);
+    const resultText = extractAssistantText(completion);
     return NextResponse.json({ result: resultText });
-
+  } catch (error: any) {
+    console.error("❌ WCF API Error:", error.message || error);
+    return NextResponse.json(
+      { error: "Internal Server Error", detail: error.message },
+      { status: 500 }
+    );
+  }
+}
