@@ -257,12 +257,15 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
       (completion as any)?.output_text?.trim?.() ||
       (completion as any)?.output_message?.content?.[0]?.text?.trim?.() ||
       (completion as any)?.output?.[0]?.content?.[0]?.text?.trim?.() ||
+      (completion as any)?.response?.output_text?.trim?.() ||
+      (completion as any)?.response?.output?.[0]?.content?.[0]?.text?.trim?.() ||
+      (completion as any)?.response?.message?.content?.trim?.() ||
       "";
 
     if (!resultText) {
       console.warn("⚠️ OpenAI returned an empty response:", completion);
       return NextResponse.json(
-        { error: "OpenAI returned an empty response." },
+        { error: "OpenAI returned an empty response.", detail: completion },
         { status: 502 }
       );
     }
