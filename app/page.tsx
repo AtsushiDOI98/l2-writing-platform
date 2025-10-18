@@ -446,16 +446,6 @@ After these fifteen steps, the chocolate is ready to eat. Making chocolate is ha
       {/* Step 1 */}
       {step === 1 && (
         <div>
-          <p className="mb-4 text-lg font-semibold text-red-600">あなたは「{(() => {
-            const c = (condition || "").trim().toLowerCase();
-            return c === "control"
-              ? "見直し"
-              : c === "model text"
-              ? "模範解答"
-              : c === "ai-wcf"
-              ? "AIのフィードバック"
-              : condition;
-          })()}」グループに割り振られました</p>
           <h2 className="text-2xl font-semibold mb-4">英作文タスクの流れ</h2>
           <ol className="list-decimal pl-6 space-y-2">
             <li>ブレインストーミング (10分)</li>
@@ -481,7 +471,7 @@ After these fifteen steps, the chocolate is ready to eat. Making chocolate is ha
       {step === 2 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">ブレインストーミング (10分)</h2>
-          <p className="mb-4 text-gray-700">別紙の英作文タスクを参照しながら自身のアイデアを整理し、以下の記入欄にアイデアを書いてください。</p>
+          <p className="mb-4 text-gray-700">別紙の英作文タスクを参考にして、自分の考えを整理しましょう。下の記入欄には、英作文に書こうと思う内容をメモしてください。</p>
           <p className="mb-2 text-gray-600">
             残り時間:{" "}
             {Math.max(0, 600 - brainstormTimer) > 0
@@ -540,7 +530,7 @@ After these fifteen steps, the chocolate is ready to eat. Making chocolate is ha
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>
-                <span>AIのフィードバックを作成中… 少々お待ちください。</span>
+                <span>フィードバックを作成中… 少々お待ちください。</span>
               </div>
             </div>
           ) : (
@@ -553,49 +543,28 @@ After these fifteen steps, the chocolate is ready to eat. Making chocolate is ha
       {step === 5 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">振り返り</h2>
-          {condition?.trim().toLowerCase() === "control" && (
-            <p className="mb-4 text-gray-700">自身の英作文を読み返し、正しく書けているか確認してください。</p>
-          )}
-          {condition?.trim().toLowerCase() === "model text" && (
-            <p className="mb-4 text-gray-700">自身の英作文と模範解答を比較して、どのように修正すべきか考えてください。</p>
-          )}
-          {condition?.trim().toLowerCase() === "ai-wcf" && (
-            <p className="mb-4 text-gray-700">自身の英作文とAIのフィードバックを比較して、どのように修正すべきか考えてください。</p>
-          )}
+          <p className="mb-4 text-gray-700">前のステップで書いた内容を参考にしながら、改善点を考えましょう。</p>
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <h3 className="font-semibold mb-2">元の文</h3>
               <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{pretestText}</div>
             </div>
-            {condition?.trim().toLowerCase() !== "control" && (
-              <div>
-                <h3 className="font-semibold mb-2">
-                  {(() => {
-                    const c = (condition || "").trim().toLowerCase();
-                    return c === "control"
-                      ? "見直し"
-                      : c === "model text"
-                      ? "模範解答"
-                      : c === "ai-wcf"
-                      ? "AIのフィードバック"
-                      : condition;
-                  })()}
-                </h3>
-                {condition?.trim().toLowerCase() === "ai-wcf" && wcfLoading ? (
-                  <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white flex items-center justify-center text-gray-600">
-                    <div className="flex items-center space-x-3">
-                      <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                      </svg>
-                      <span>フィードバックを作成中…</span>
-                    </div>
+            <div>
+              <h3 className="font-semibold mb-2">参考資料</h3>
+              {condition?.trim().toLowerCase() === "ai-wcf" && wcfLoading ? (
+                <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white flex items-center justify-center text-gray-600">
+                  <div className="flex items-center space-x-3">
+                    <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    <span>フィードバックを作成中…</span>
                   </div>
-                ) : (
-                  <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{wcfText}</div>
-                )}
-              </div>
-            )}
+                </div>
+              ) : (
+                <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white">{wcfText}</div>
+              )}
+            </div>
           </div>
           <p className="mb-2 text-gray-600">
             残り時間:{" "}
@@ -616,24 +585,21 @@ After these fifteen steps, the chocolate is ready to eat. Making chocolate is ha
       {step === 6 && (
         <div>
           <h3 className="font-semibold mb-2">英作文タスク (30分)</h3>
-          <p className="mb-4 text-gray-700">自身が書いた英作文を参照し、書き直してください。その際、機械翻訳や生成AIは使用しないでください。</p>
+          <p className="mb-2 text-gray-700">
+            別紙の英作文タスクを参照し、英作文を書き直してください。その際、機械翻訳や生成AIは使用しないでください。
+          </p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
             {Math.max(0, 1800 - posttestTimer) > 0
               ? `${Math.floor((1800 - posttestTimer) / 60)}:${String((1800 - posttestTimer) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-2">元の文</h3>
-              <div className="border p-2 h-96 overflow-y-auto whitespace-pre-line bg-white">{pretestText}</div>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">書き直し</h3>
-              <textarea className="border p-2 w-full h-96" value={posttestText} onChange={(e) => setPosttestText(e.target.value)} />
-              <p className="text-right mt-1 text-sm text-gray-500">単語数: {wordCount(posttestText)}</p>
-            </div>
-          </div>
+          <textarea
+            className="border p-2 w-full h-96"
+            value={posttestText}
+            onChange={(e) => setPosttestText(e.target.value)}
+          />
+          <p className="text-right mt-1 text-sm text-gray-500">単語数: {wordCount(posttestText)}</p>
           <button
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
             onClick={goToSurveyInstructions}
