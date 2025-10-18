@@ -199,7 +199,7 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
     client.chat.completions.create({
       model: "gpt-5",
       messages,
-      max_tokens: 400,
+      max_completion_tokens: 400,
     })
   );
 
