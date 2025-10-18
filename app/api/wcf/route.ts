@@ -8,6 +8,7 @@ import type {
   ChatCompletionContentPartText,
   ChatCompletionMessageParam,
   ChatCompletionMessage,
+  ChatCompletionCreateParamsNonStreaming,
 } from "openai/resources/chat/completions";
 import fs from "fs/promises";
 import path from "path";
@@ -148,7 +149,7 @@ async function loadTaskContext(): Promise<string> {
 
 async function callOpenAIWithRetry(
   client: OpenAI,
-  payload: Parameters<OpenAI["chat"]["completions"]["create"]>[0],
+  payload: ChatCompletionCreateParamsNonStreaming,
   retries = 2
 ): Promise<ChatCompletion> {
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -182,13 +183,8 @@ function extractAssistantText(completion: ChatCompletion): string {
   const choice = completion.choices?.[0];
   if (!choice) return "No response";
 
-  const fromMessage = extractFromMessage(choice.message);
-  if (fromMessage) return fromMessage;
-
-  const fromDelta = choice.delta
-    ? extractFromMessage(choice.delta as ChatCompletionMessage)
-    : "";
-  if (fromDelta) return fromDelta;
+  const text = extractFromMessage(choice.message);
+  if (text) return text;
 
   return "No response";
 }
@@ -196,16 +192,29 @@ function extractAssistantText(completion: ChatCompletion): string {
 function extractFromMessage(message: ChatCompletionMessage | undefined): string {
   if (!message) return "";
 
-  if (typeof message.content === "string") {
-    return message.content.trim();
+  if (typeof message.refusal === "string" && message.refusal.trim()) {
+    return message.refusal.trim();
   }
 
-  if (Array.isArray(message.content)) {
-    const parts = message.content
-      .filter((part): part is ChatCompletionContentPartText => part.type === "text")
-      .map((part) => part.text?.trim())
+  const rawContent = message.content as unknown;
+
+  if (typeof rawContent === "string") {
+    return rawContent.trim();
+  }
+
+  if (Array.isArray(rawContent)) {
+    const parts = rawContent
+      .filter((part): part is ChatCompletionContentPartText => {
+        if (!part || typeof part !== "object") return false;
+        const candidate = part as { type?: unknown; text?: unknown };
+        return candidate.type === "text" && typeof candidate.text === "string";
+      })
+      .map((part) => part.text.trim())
       .filter(Boolean);
-    return parts.join("\n");
+
+    if (parts.length > 0) {
+      return parts.join("\n");
+    }
   }
 
   return "";
@@ -281,6 +290,7 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
       callOpenAIWithRetry(client, {
         model: "gpt-5",
         messages,
+        stream: false,
       })
     );
 
@@ -294,3 +304,4 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
     );
   }
 }
+
