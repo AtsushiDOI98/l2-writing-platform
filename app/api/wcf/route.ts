@@ -198,7 +198,7 @@ export async function POST(req: Request) {
   const messages: ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content: `This is an essay written by English as foreign language (EFL) learner.
+      content: `This is an essay written by an English as a foreign language (EFL) learner.
 He or she wrote it based on the 15 steps to make chocolate as shown in the provided picture. 
       
 I would like you to rewrite the essay into an improved version. 
@@ -247,16 +247,24 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
         {
           model: "gpt-5",
           messages,
-          max_completion_tokens: 400, // ✅ 正しいパラメータ
+          max_completion_tokens: 800, // 長文対応
         },
-        3 // retry回数
+        3
       )
     );
 
+    // ✅ GPT-5 出力構造に多層フォールバック対応
     const resultText =
-      completion.choices?.[0]?.message?.content ||
-      completion.output_text ||
-      "No response";
+      completion.choices?.[0]?.message?.content?.trim() ||
+      (completion as any)?.output_text?.trim?.() ||
+      (completion as any)?.output?.[0]?.content?.[0]?.text?.trim?.() ||
+      "⚠️ OpenAI returned an empty response.";
+
+    if (resultText.startsWith("⚠️")) {
+      console.warn("⚠️ Empty or unexpected OpenAI response:", completion);
+    } else {
+      console.log("✅ OpenAI response received, length:", resultText.length);
+    }
 
     return NextResponse.json({ result: resultText });
   } catch (error: any) {
@@ -267,3 +275,4 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
     );
   }
 }
+
