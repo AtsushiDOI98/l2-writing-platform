@@ -246,29 +246,44 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
         {
           model: "gpt-5",
           messages,
-          max_completion_tokens: 800,
+          max_completion_tokens: 400,
         },
         3
       )
     );
 
-    // ✅ GPT-5 多層フォールバック対応（確定版）
+       // ✅ GPT-5 多層フォールバック対応（最終版）
     const choice = completion?.choices?.[0];
-    let resultText =
-      choice?.message?.content?.trim?.() ||
-      (Array.isArray(choice?.message?.content)
-        ? choice.message.content
-            .map((c: any) => c?.text ?? "")
-            .join("\n")
-            .trim()
-        : "") ||
+    let resultText = "";
+
+    // 1️⃣ 新形式 (message.content が配列)
+    if (Array.isArray(choice?.message?.content)) {
+      resultText = choice.message.content
+        .map((c: any) => c?.text ?? "")
+        .join("\n")
+        .trim();
+    }
+
+    // 2️⃣ 通常形式
+    if (!resultText && typeof choice?.message?.content === "string") {
+      resultText = choice.message.content.trim();
+    }
+
+    // 3️⃣ output_text / output_message / output / response など多段フォールバック
+    resultText =
+      resultText ||
       (completion as any)?.output_text?.trim?.() ||
-      (completion as any)?.output_message?.content?.[0]?.text?.trim?.() ||
       (completion as any)?.output?.[0]?.content?.[0]?.text?.trim?.() ||
+      (completion as any)?.output_message?.content?.[0]?.text?.trim?.() ||
       (completion as any)?.response?.output_text?.trim?.() ||
       (completion as any)?.response?.output?.[0]?.content?.[0]?.text?.trim?.() ||
       (completion as any)?.response?.message?.content?.trim?.() ||
       "";
+
+    // 4️⃣ 念のため JSON.stringify デバッグ形式も検査
+    if (!resultText && completion?.choices?.[0]) {
+      resultText = JSON.stringify(completion.choices[0]);
+    }
 
     if (!resultText) {
       console.warn("⚠️ OpenAI returned an empty response:", completion);
@@ -280,13 +295,4 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
 
     console.log("✅ OpenAI response received, length:", resultText.length);
     return NextResponse.json({ result: resultText });
-  } catch (error: any) {
-    console.error("❌ WCF API Error:", error.message || error);
-    return NextResponse.json(
-      { error: "Internal Server Error", detail: error.message },
-      { status: 500 }
-    );
-  }
-}
-
 
