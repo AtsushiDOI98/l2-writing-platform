@@ -224,7 +224,7 @@ function extractFromMessage(message: ChatCompletionMessage | undefined): string 
 
 export async function POST(req: Request) {
   const apiKey = env.OPENAI_API_KEY;
-  const limit = pLimit(3);
+  const limit = pLimit(2);
 
   if (!apiKey) {
     return NextResponse.json(
