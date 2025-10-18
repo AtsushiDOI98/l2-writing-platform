@@ -166,7 +166,7 @@ async function callOpenAIWithRetry(
         console.warn(
           `⚠️ [Retry ${attempt}/${retries}] OpenAI image fetch failed: ${msg}`
         );
-        await new Promise((r) => setTimeout(r, 1000 * attempt));
+        await new Promise((r) => setTimeout(r, 1000 * attempt)); // バックオフ
         continue;
       }
 
@@ -238,6 +238,7 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
     messages.push({ role: "user", content: text });
   }
 
+  // --- OpenAI呼び出し ---
   try {
     const completion = await limit(() =>
       callOpenAIWithRetry(
@@ -245,7 +246,7 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
         {
           model: "gpt-5",
           messages,
-          max_completion_tokens: 400,
+          max_completion_tokens: 800,
         },
         3
       )
@@ -254,16 +255,13 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
     // ✅ GPT-5 多層フォールバック対応（確定版）
     const choice = completion?.choices?.[0];
     let resultText =
-      // 旧来形式
       choice?.message?.content?.trim?.() ||
-      // GPT-5 新形式（配列）
       (Array.isArray(choice?.message?.content)
         ? choice.message.content
             .map((c: any) => c?.text ?? "")
             .join("\n")
             .trim()
         : "") ||
-      // 新 SDK 拡張形式
       (completion as any)?.output_text?.trim?.() ||
       (completion as any)?.output_message?.content?.[0]?.text?.trim?.() ||
       (completion as any)?.output?.[0]?.content?.[0]?.text?.trim?.() ||
@@ -282,4 +280,13 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
 
     console.log("✅ OpenAI response received, length:", resultText.length);
     return NextResponse.json({ result: resultText });
+  } catch (error: any) {
+    console.error("❌ WCF API Error:", error.message || error);
+    return NextResponse.json(
+      { error: "Internal Server Error", detail: error.message },
+      { status: 500 }
+    );
+  }
+}
+
 
