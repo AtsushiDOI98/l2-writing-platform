@@ -166,7 +166,7 @@ async function callOpenAIWithRetry(
         console.warn(
           `⚠️ [Retry ${attempt}/${retries}] OpenAI image fetch failed: ${msg}`
         );
-        await new Promise((r) => setTimeout(r, 1000 * attempt)); // バックオフ付き再試行
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
         continue;
       }
 
@@ -194,7 +194,6 @@ export async function POST(req: Request) {
   const taskContextRaw = await loadTaskContext();
   const taskContext = taskContextRaw ? taskContextRaw.slice(0, 8000) : "";
 
-  // --- OpenAIに送るメッセージ構築 ---
   const messages: ChatCompletionMessageParam[] = [
     {
       role: "system",
@@ -239,7 +238,6 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
     messages.push({ role: "user", content: text });
   }
 
-  // --- API呼び出し ---
   try {
     const completion = await limit(() =>
       callOpenAIWithRetry(
@@ -247,25 +245,29 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
         {
           model: "gpt-5",
           messages,
-          max_completion_tokens: 800, // 長文対応
+          max_completion_tokens: 800,
         },
         3
       )
     );
 
-    // ✅ GPT-5 出力構造に多層フォールバック対応
+    // ✅ GPT-5 多層フォールバック対応
     const resultText =
-      completion.choices?.[0]?.message?.content?.trim() ||
+      completion?.choices?.[0]?.message?.content?.trim?.() ||
       (completion as any)?.output_text?.trim?.() ||
+      (completion as any)?.output_message?.content?.[0]?.text?.trim?.() ||
       (completion as any)?.output?.[0]?.content?.[0]?.text?.trim?.() ||
-      "⚠️ OpenAI returned an empty response.";
+      "";
 
-    if (resultText.startsWith("⚠️")) {
-      console.warn("⚠️ Empty or unexpected OpenAI response:", completion);
-    } else {
-      console.log("✅ OpenAI response received, length:", resultText.length);
+    if (!resultText) {
+      console.warn("⚠️ OpenAI returned an empty response:", completion);
+      return NextResponse.json(
+        { error: "OpenAI returned an empty response." },
+        { status: 502 }
+      );
     }
 
+    console.log("✅ OpenAI response received, length:", resultText.length);
     return NextResponse.json({ result: resultText });
   } catch (error: any) {
     console.error("❌ WCF API Error:", error.message || error);
