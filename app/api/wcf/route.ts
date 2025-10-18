@@ -10,8 +10,8 @@ import pLimit from "p-limit";
 // ✅ Cloudflare Pages CDNに対応
 //
 const DEFAULT_BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  "https://l2-writing-platform.pages.dev/task-images";
+  process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") ||
+  "https://l2-writing-platform.pages.dev";
 
 const TASK_IMAGE_URLS: readonly string[] = [
   "01-ripe.png",
@@ -31,6 +31,19 @@ const TASK_IMAGE_URLS: readonly string[] = [
   "15-mold.png",
   "16.png",
 ];
+
+if (TASK_IMAGE_URLS.length > 0) {
+  const parts: ChatCompletionContentPart[] = [{ type: "text", text }];
+  for (const file of TASK_IMAGE_URLS) {
+    parts.push({
+      type: "image_url",
+      image_url: { url: `${DEFAULT_BASE_URL}/task-images/${file}` },
+    });
+  }
+  messages.push({ role: "user", content: parts });
+} else {
+  messages.push({ role: "user", content: text });
+}
 
 //
 // ファイル存在確認（Cloudflare上では常にfalse扱い）
@@ -191,7 +204,7 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
     for (const file of TASK_IMAGE_URLS) {
       parts.push({
         type: "image_url",
-        image_url: { url: `${DEFAULT_BASE_URL}/${file}` },
+        image_url: { url: `${DEFAULT_BASE_URL}/task-images/${file}` },
       });
     }
     messages.push({ role: "user", content: parts });
