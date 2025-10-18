@@ -1,17 +1,23 @@
 export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
+import type { ChatCompletionContentPart, ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import fs from "fs/promises";
 import path from "path";
 import pLimit from "p-limit";
 
-//
-// ✅ Cloudflare Pages CDNに対応
-//
+type EnvMap = Record<string, string | undefined>;
+
+const env: EnvMap =
+  typeof process !== "undefined" && process?.env ? process.env : {};
+
+const CAN_USE_FS = typeof process !== "undefined" && env.CF_PAGES !== "1";
+
 const DEFAULT_BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") ||
-  "https://l2-writing-platform.pages.dev";
+  (env.NEXT_PUBLIC_BASE_URL ?? "https://l2-writing-platform.pages.dev").replace(/\/$/, "");
+
+const TASK_IMAGE_BASE = `${DEFAULT_BASE_URL}/task-images`;
 
 const TASK_IMAGE_URLS: readonly string[] = [
   "01-ripe.png",
@@ -32,24 +38,8 @@ const TASK_IMAGE_URLS: readonly string[] = [
   "16.png",
 ];
 
-if (TASK_IMAGE_URLS.length > 0) {
-  const parts: ChatCompletionContentPart[] = [{ type: "text", text }];
-  for (const file of TASK_IMAGE_URLS) {
-    parts.push({
-      type: "image_url",
-      image_url: { url: `${DEFAULT_BASE_URL}/task-images/${file}` },
-    });
-  }
-  messages.push({ role: "user", content: parts });
-} else {
-  messages.push({ role: "user", content: text });
-}
-
-//
-// ファイル存在確認（Cloudflare上では常にfalse扱い）
-//
 async function fileExists(p: string) {
-  if (process.env.CF_PAGES === "1") return false; // ✅ Cloudflare PagesではローカルI/O禁止
+  if (!CAN_USE_FS) return false;
   try {
     await fs.access(p);
     return true;
@@ -60,44 +50,37 @@ async function fileExists(p: string) {
 
 let TASK_CONTEXT_CACHE: string | null = null;
 
-//
-// タスクコンテキスト読み込み
-//
 async function loadTaskContext(): Promise<string> {
   if (TASK_CONTEXT_CACHE !== null) return TASK_CONTEXT_CACHE;
 
-  const inline = process.env.TASK_CONTEXT_TEXT;
+  const inline = env.TASK_CONTEXT_TEXT;
   if (inline && inline.trim()) {
     TASK_CONTEXT_CACHE = inline.trim();
     return TASK_CONTEXT_CACHE;
   }
 
-  //
-  // ✅ Cloudflare Pagesではfetchで読み込みに切り替え
-  //
-  if (process.env.CF_PAGES === "1") {
-    try {
-      const txtUrl = `${DEFAULT_BASE_URL.replace("/task-images", "")}/task-context.txt`;
-      const res = await fetch(txtUrl);
-      if (res.ok) {
-        const text = await res.text();
-        TASK_CONTEXT_CACHE = text;
-        return text;
+  if (!CAN_USE_FS) {
+    if (env.CF_PAGES === "1") {
+      try {
+        const res = await fetch(`${DEFAULT_BASE_URL}/task-context.txt`);
+        if (res.ok) {
+          const text = await res.text();
+          TASK_CONTEXT_CACHE = text;
+          return text;
+        }
+      } catch {
+        // ignore network errors and fall through to empty cache
       }
-    } catch {
-      TASK_CONTEXT_CACHE = "";
-      return "";
     }
+    TASK_CONTEXT_CACHE = "";
+    return TASK_CONTEXT_CACHE;
   }
 
-  //
-  // ✅ Render/Vercelなど通常Node環境では従来通りファイル読み込み
-  //
   const resolvePath = (p: string) =>
     path.isAbsolute(p) ? p : path.join(process.cwd(), p);
 
-  const envPath = process.env.TASK_CONTEXT_PATH
-    ? resolvePath(process.env.TASK_CONTEXT_PATH)
+  const envPath = env.TASK_CONTEXT_PATH
+    ? resolvePath(env.TASK_CONTEXT_PATH)
     : null;
   const publicDir = path.join(process.cwd(), "public");
   const defaultTxt = path.join(publicDir, "task-context.txt");
@@ -152,7 +135,7 @@ async function loadTaskContext(): Promise<string> {
 }
 
 export async function POST(req: Request) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = env.OPENAI_API_KEY;
   const limit = pLimit(3);
 
   if (!apiKey) {
@@ -163,7 +146,7 @@ export async function POST(req: Request) {
   }
 
   const client = new OpenAI({ apiKey });
-  const { text } = await req.json();
+  const { text } = (await req.json()) as { text: string };
 
   const taskContextRaw = await loadTaskContext();
   const taskContext = taskContextRaw ? taskContextRaw.slice(0, 8000) : "";
@@ -204,7 +187,7 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
     for (const file of TASK_IMAGE_URLS) {
       parts.push({
         type: "image_url",
-        image_url: { url: `${DEFAULT_BASE_URL}/task-images/${file}` },
+        image_url: { url: `${TASK_IMAGE_BASE}/${file}` },
       });
     }
     messages.push({ role: "user", content: parts });
@@ -222,4 +205,3 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
 
   return NextResponse.json({ result: completion.choices[0].message.content });
 }
-
