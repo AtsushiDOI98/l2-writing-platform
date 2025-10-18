@@ -2,20 +2,24 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import type { ChatCompletionContentPart, ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import type {
+  ChatCompletionContentPart,
+  ChatCompletionMessageParam,
+} from "openai/resources/chat/completions";
 import fs from "fs/promises";
 import path from "path";
 import pLimit from "p-limit";
 
-type EnvMap = Record<string, string | undefined>;
+// --- 環境変数とベースURL設定 ---------------------------------------
 
+type EnvMap = Record<string, string | undefined>;
 const env: EnvMap =
   typeof process !== "undefined" && process?.env ? process.env : {};
 
 const CAN_USE_FS = typeof process !== "undefined" && env.CF_PAGES !== "1";
 
-const DEFAULT_BASE_URL =
-  (env.NEXT_PUBLIC_BASE_URL ?? "https://l2-writing-platform.pages.dev").replace(/\/$/, "");
+const DEFAULT_BASE_URL = (env.NEXT_PUBLIC_BASE_URL ??
+  "https://l2-writing-platform.pages.dev").replace(/\/$/, "");
 
 const TASK_IMAGE_BASE = `${DEFAULT_BASE_URL}/task-images`;
 
@@ -38,6 +42,8 @@ const TASK_IMAGE_URLS: readonly string[] = [
   "16.png",
 ];
 
+// --- コンテキスト読み込み --------------------------------------------
+
 async function fileExists(p: string) {
   if (!CAN_USE_FS) return false;
   try {
@@ -59,6 +65,7 @@ async function loadTaskContext(): Promise<string> {
     return TASK_CONTEXT_CACHE;
   }
 
+  // Cloudflare Pages 実行時（fs不可）
   if (!CAN_USE_FS) {
     if (env.CF_PAGES === "1") {
       try {
@@ -69,11 +76,11 @@ async function loadTaskContext(): Promise<string> {
           return text;
         }
       } catch {
-        // ignore network errors and fall through to empty cache
+        // ネットワークエラー時は無視
       }
     }
     TASK_CONTEXT_CACHE = "";
-    return TASK_CONTEXT_CACHE;
+    return "";
   }
 
   const resolvePath = (p: string) =>
@@ -134,6 +141,42 @@ async function loadTaskContext(): Promise<string> {
   return "";
 }
 
+// --- OpenAI呼び出し用リトライラッパー ------------------------------
+
+async function callOpenAIWithRetry(
+  client: OpenAI,
+  payload: any,
+  retries = 3
+): Promise<any> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const result = await client.chat.completions.create(payload);
+      return result;
+    } catch (error: any) {
+      const code = error?.code || "";
+      const msg = error?.message || "";
+
+      if (
+        attempt < retries &&
+        (code === "invalid_image_url" ||
+          msg.includes("Failed to download image") ||
+          msg.includes("timed out") ||
+          msg.includes("fetch failed"))
+      ) {
+        console.warn(
+          `⚠️ [Retry ${attempt}/${retries}] OpenAI image fetch failed: ${msg}`
+        );
+        await new Promise((r) => setTimeout(r, 1000 * attempt)); // バックオフ付き再試行
+        continue;
+      }
+
+      throw error;
+    }
+  }
+}
+
+// --- メインエンドポイント --------------------------------------------
+
 export async function POST(req: Request) {
   const apiKey = env.OPENAI_API_KEY;
   const limit = pLimit(3);
@@ -151,6 +194,7 @@ export async function POST(req: Request) {
   const taskContextRaw = await loadTaskContext();
   const taskContext = taskContextRaw ? taskContextRaw.slice(0, 8000) : "";
 
+  // --- OpenAIに送るメッセージ構築 ---
   const messages: ChatCompletionMessageParam[] = [
     {
       role: "system",
@@ -177,7 +221,7 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
       role: "system",
       content:
         "The following text contains the official assignment instructions. " +
-        "Use these instructions together with the provided step-by-step images to fully understand the writing task.\n\n" +
+        "Use these together with the provided images to fully understand the writing task.\n\n" +
         taskContext,
     });
   }
@@ -195,13 +239,31 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
     messages.push({ role: "user", content: text });
   }
 
-  const completion = await limit(() =>
-    client.chat.completions.create({
-      model: "gpt-5",
-      messages,
-      max_completion_tokens: 400,
-    })
-  );
+  // --- API呼び出し ---
+  try {
+    const completion = await limit(() =>
+      callOpenAIWithRetry(
+        client,
+        {
+          model: "gpt-5",
+          messages,
+          max_completion_tokens: 400, // ✅ 正しいパラメータ
+        },
+        3 // retry回数
+      )
+    );
 
-  return NextResponse.json({ result: completion.choices[0].message.content });
+    const resultText =
+      completion.choices?.[0]?.message?.content ||
+      completion.output_text ||
+      "No response";
+
+    return NextResponse.json({ result: resultText });
+  } catch (error: any) {
+    console.error("❌ WCF API Error:", error.message || error);
+    return NextResponse.json(
+      { error: "Internal Server Error", detail: error.message },
+      { status: 500 }
+    );
+  }
 }
