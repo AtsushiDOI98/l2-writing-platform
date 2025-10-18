@@ -1,36 +1,41 @@
-name: Warm Cloudflare Cache after Render Deploy
+name: Warm Cloudflare Cache (manual)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
   warm-cache:
-    name: Warm Cloudflare Pages Cache
     runs-on: ubuntu-latest
-
     steps:
-      - name: 🕒 Wait for Render Deployment
-        run: |
-          echo "⏳ Waiting 45 seconds to ensure Render deploy is fully live..."
-          sleep 45
-
       - name: 🔥 Warm Cloudflare Cache for Task Images
         run: |
           BASE_URL="https://l2-writing-platform.pages.dev/task-images"
-          echo "Warming cache for images under $BASE_URL"
-          for i in {1..16}; do
-            FILE=$(printf "%02d" $i).png
-            echo "→ Requesting $BASE_URL/$FILE"
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/$FILE")
+          echo "🚀 Starting cache warm-up for $BASE_URL"
+
+          FILES=(
+            01-ripe.png
+            02-harvest.png
+            03.png
+            04.png
+            05.png
+            06-sack.png
+            07-weigh.png
+            08-heave.png
+            09.png
+            10.png
+            11-roast.png
+            12-layer.png
+            13-pulverize.png
+            14-agitate.png
+            15-mold.png
+            16.png
+          )
+
+          for file in "${FILES[@]}"; do
+            echo "→ Warming $BASE_URL/$file"
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/$file")
             echo "   ↳ HTTP $STATUS"
             sleep 1
           done
-          echo "✅ All task images warmed successfully."
 
-      - name: 🌐 Verify Cache Headers (optional)
-        run: |
-          echo "Verifying cache-control header for a sample image..."
-          curl -I "$BASE_URL/01.png" | grep -Ei "cache-control|cf-ray|cf-cache-status" || true
+          echo "✅ Cache warm-up completed successfully."
