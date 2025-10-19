@@ -245,7 +245,7 @@ export async function POST(req: Request) {
       content: `This is an essay written by an English as a Foreign Language (EFL) learner.
 He or she wrote it based on the 15 steps to make chocolate as shown in the provided images.
 
-Rewrite the essay to make it more fluent and natural, while keeping the vocabulary and sentence complexity appropriate for an intermediate EFL learner.
+I would like you to rewrite the essay into an improved version, while keeping the vocabulary and sentence complexity appropriate for the learner's proficiency level.
 Present the improved essay only. Do not provide explanations or comments.
 
 You must use each word from the word list in the improved essay.
@@ -287,7 +287,7 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
   try {
     const completion = await limit(() =>
       callOpenAIWithRetry(client, {
-        model: "gpt-5",
+        model: "gpt-5-mini",
         messages,
         stream: false,
       })
