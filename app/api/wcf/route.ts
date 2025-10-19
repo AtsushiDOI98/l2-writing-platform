@@ -287,7 +287,7 @@ Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, 
   try {
     const completion = await limit(() =>
       callOpenAIWithRetry(client, {
-        model: "gpt-5-mini",
+        model: "gpt-5",
         messages,
         stream: false,
       })
