@@ -17,18 +17,17 @@ jobs:
             02-harvest.png
             03.png
             04.png
-            05.png
-            06-sack.png
-            07-weigh.png
-            08-heave.png
+            05-sack.png
+            06-weigh.png
+            07-heave.png
+            08.png
             09.png
-            10.png
-            11-roast.png
-            12-layer.png
-            13-pulverize.png
-            14-agitate.png
-            15-mold.png
-            16.png
+            10-roast.png
+            11-layer.png
+            12-pulverize.png
+            13-agitate.png
+            14-mold.png
+            15.png
           )
 
           for file in "${FILES[@]}"; do
