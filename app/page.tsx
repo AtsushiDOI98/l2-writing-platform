@@ -246,7 +246,7 @@ useEffect(() => {
       setStep(5);
       setWlStart(Date.now());
     } else if (cond === "model text") {
-      setWcfText(`Chocolate is one of the most popular sweets in the world, but making it takes many careful steps from cacao to chocolate.
+      setWcfText(`Chocolate is one of the most popular sweets in the world, but making it takes many careful steps from cacao pods to a chocolate bar.
       
 First, the cocoa pods must become ripe before farmers can harvest them. After that, they open the pods and take out the beans. The beans are put into a sack, and workers weigh each one to check the amount. Then, they heave the heavy sacks onto a truck and send them to a factory.
 
