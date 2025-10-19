@@ -243,19 +243,19 @@ export async function POST(req: Request) {
   const messages: ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content: `This is an essay written by English as foreign language (EFL) learner.
-He or she wrote it based on the 15 steps to make chocolate as shown in the provided picture. 
-      
-I would like you to rewrite the essay into an improved version. 
-Present the improved essay only. You do not have to provide explanations.
+      content: `This is an essay written by an English as a Foreign Language (EFL) learner.
+He or she wrote it based on the 15 steps to make chocolate as shown in the provided images.
 
-You must use each word from the word list in the improved essay. 
-Do not skip or omit any word. Even if the learner’s essay skips a certain step, 
+Rewrite the essay to make it more fluent and natural, while keeping the vocabulary and sentence complexity appropriate for an intermediate EFL learner.
+Present the improved essay only. Do not provide explanations or comments.
+
+You must use each word from the word list in the improved essay.
+Do not skip or omit any word. Even if the learner’s essay skips a certain step,
 add a sentence that describes it using the appropriate word.
 
-Follow the sequence of steps shown in the provided images. 
-Each word must be placed in the step where it belongs in the chocolate-making process. 
-Do not use a word into an incorrect step.
+Ensure that the steps are described in the same chronological order as shown in the images.
+Each word must be used in the step where it belongs in the chocolate-making process.
+Do not use a word in an incorrect step.
 
 Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, mold`,
     },
