@@ -643,7 +643,7 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
       {step === 7 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">次のステップに進む前に</h2>
-          <p className="mb-6 text-gray-700">担当者の指示に従ってください。</p>
+          <p className="mb-6 text-gray-700">この画面が表示されたら挙手で知らせ、少々お待ちください。</p>
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded"
             onClick={goToSurvey}
