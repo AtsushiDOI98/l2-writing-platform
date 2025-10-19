@@ -256,7 +256,17 @@ Ensure that the steps are described in the same chronological order as shown in 
 Each word must be used in the step where it belongs in the chocolate-making process.
 Do not use a word in an incorrect step.
 
-Word list: ripe, harvest, sack, weigh, heave, roast, layer, pulverize, agitate, mold`,
+Word list (use in this order):
+1. ripe 
+2. harvest 
+3. sack 
+4. weigh 
+5. heave
+6. roast 
+7. layer
+8. pulverize 
+9. agitate
+10. mold`,
     },
   ];
 
