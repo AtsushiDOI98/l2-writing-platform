@@ -6,6 +6,7 @@ on:
 jobs:
   warm-cache:
     runs-on: ubuntu-latest
+
     steps:
       - name: 🔥 Warm Cloudflare Cache for Task Images
         run: |
@@ -31,8 +32,9 @@ jobs:
           )
 
           for file in "${FILES[@]}"; do
-            echo "→ Warming $BASE_URL/$file"
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/$file")
+            URL="$BASE_URL/$file"
+            echo "→ Warming $URL"
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
             echo "   ↳ HTTP $STATUS"
             sleep 1
           done
