@@ -1,0 +1,45 @@
+name: Warm Cloudflare Cache v3 (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  warm-cache:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔥 Warm Cloudflare Cache for Task Images
+        run: |
+          set -e
+          BASE_URL="https://l2-writing-platform.pages.dev/task-images"
+          echo "🚀 Starting cache warm-up for $BASE_URL"
+
+          FILES=(
+            01-ripe.png
+            02-harvest.png
+            03.png
+            04.png
+            05-sack.png
+            06-weigh.png
+            07-heave.png
+            08.png
+            09.png
+            10-roast.png
+            11.png
+            12-pulverize.png
+            13-agitate.png
+            14-mold.png
+            15.png
+          )
+
+          for file in "${FILES[@]}"; do
+            URL="$BASE_URL/$file"
+            echo "→ Warming $URL"
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL")
+            echo "   ↳ HTTP $STATUS"
+            sleep 1
+          done
+
+          echo "✅ Cache warm-up completed successfully."
+
+
