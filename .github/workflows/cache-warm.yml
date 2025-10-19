@@ -1,4 +1,4 @@
-name: Warm Cloudflare Cache v2 (manual)
+name: Warm Cloudflare Cache v3 (manual)
 
 on:
   workflow_dispatch:
@@ -41,3 +41,4 @@ jobs:
           done
 
           echo "✅ Cache warm-up completed successfully."
+
