@@ -257,16 +257,16 @@ Each word must be used in the step where it belongs in the chocolate-making proc
 Do not use a word in an incorrect step.
 
 Word list (use in this order):
-1. ripe 
-2. harvest 
-3. sack 
-4. weigh 
-5. heave
-6. roast 
-7. layer
-8. pulverize 
-9. agitate
-10. mold`,
+1. ripe (Step 1: The pods become ripe on the trees.)
+2. harvest (Step 2: Farmers harvest the ripe pods.)
+3. sack (Step 3: Workers place the beans into a sack.)
+4. weigh (Step 4: They weigh each sack.)
+5. heave (Step 5: Workers heave the heavy sacks for transport.)
+6. roast (Step 6: At the factory, the beans roast in large drums.)
+7. layer (Step 7: A layer of shells separates from the nibs before grinding.)
+8. pulverize (Step 8: Machines pulverize the nibs into cocoa mass.)
+9. agitate (Step 9: The chocolate is agitated to become smooth.)
+10. mold (Step 10: Finally, they mold the chocolate into bars.)`,
     },
   ];
 
