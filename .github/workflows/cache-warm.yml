@@ -41,4 +41,3 @@ jobs:
           done
 
           echo "✅ Cache warm-up completed successfully."
-
