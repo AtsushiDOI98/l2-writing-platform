@@ -1,4 +1,4 @@
-name: Warm Cloudflare Cache (manual)
+name: Warm Cloudflare Cache v2 (manual)
 
 on:
   workflow_dispatch:
