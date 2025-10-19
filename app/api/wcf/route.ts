@@ -38,7 +38,7 @@ const TASK_IMAGE_URLS: readonly string[] = [
   "08.png",
   "09.png",
   "10-roast.png",
-  "11-layer.png",
+  "11.png",
   "12-pulverize.png",
   "13-agitate.png",
   "14-mold.png",
@@ -245,7 +245,7 @@ export async function POST(req: Request) {
       content: `This is an essay written by an English as a Foreign Language (EFL) learner.
 He or she wrote it based on the 15 steps to make chocolate as shown in the provided images.
 
-I would like you to rewrite the essay into an improved version, while keeping the vocabulary and sentence complexity appropriate for the learner's proficiency level.
+I would like you to rewrite the essay into an improved version.
 Present the improved essay only. Do not provide explanations or comments.
 
 You must use each word from the word list in the improved essay.
@@ -256,17 +256,7 @@ Ensure that the steps are described in the same chronological order as shown in 
 Each word must be used in the step where it belongs in the chocolate-making process.
 Do not use a word in an incorrect step.
 
-Word list (use in this order):
-1. ripe (Step 1: The pods become ripe on the trees.)
-2. harvest (Step 2: Farmers harvest the ripe pods.)
-3. sack (Step 3: Workers place the beans into a sack.)
-4. weigh (Step 4: They weigh each sack.)
-5. heave (Step 5: Workers heave the heavy sacks for transport.)
-6. roast (Step 6: At the factory, the beans roast in large drums.)
-7. layer (Step 7: A layer of shells separates from the nibs before grinding.)
-8. pulverize (Step 8: Machines pulverize the nibs into cocoa mass.)
-9. agitate (Step 9: The chocolate is agitated to become smooth.)
-10. mold (Step 10: Finally, they mold the chocolate into bars.)`,
+Word list (use in this order):ripe, harvest, sack, weigh, heave, roast, pulverize, agitate, mold `,
     },
   ];
 
