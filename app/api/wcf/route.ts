@@ -245,7 +245,8 @@ export async function POST(req: Request) {
       content: `This is an essay written by an English as a Foreign Language (EFL) learner.
 He or she wrote it based on the 15 steps to make chocolate as shown in the provided images.
 
-I would like you to rewrite the essay into an improved version, while keeping the vocabulary and sentence complexity appropriate for the learner's proficiency level.
+I would like you to rewrite the essay into an improved version and organize it into paragraphs, while keeping the vocabulary and sentence complexity appropriate for the learner's proficiency level.
+The essay should be at least 150 words in length.
 Present the improved essay only. Do not provide explanations or comments.
 
 You must use each word from the word list in the improved essay.
