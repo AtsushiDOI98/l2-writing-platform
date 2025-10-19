@@ -446,6 +446,16 @@ After these fifteen steps, the chocolate is ready to eat. Making chocolate is ha
       {/* Step 1 */}
       {step === 1 && (
         <div>
+          <p className="mb-4 text-lg font-semibold text-red-600">あなたは「{(() => {
+            const c = (condition || "").trim().toLowerCase();
+            return c === "control"
+              ? "見直し"
+              : c === "model text"
+              ? "模範解答"
+              : c === "ai-wcf"
+              ? "AIのフィードバック"
+              : condition;
+          })()}」グループに割り振られました</p>
           <h2 className="text-2xl font-semibold mb-4">英作文タスクの流れ</h2>
           <ol className="list-decimal pl-6 space-y-2">
             <li>ブレインストーミング (10分)</li>
@@ -543,7 +553,15 @@ After these fifteen steps, the chocolate is ready to eat. Making chocolate is ha
       {step === 5 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">振り返り</h2>
-          <p className="mb-4 text-gray-700">前のステップで書いた内容を参考にしながら、改善点を考えましょう。</p>
+          {condition?.trim().toLowerCase() === "control" && (
+            <p className="mb-4 text-gray-700">自身の英作文を読み返し、正しく書けているか確認してください。</p>
+          )}
+          {condition?.trim().toLowerCase() === "model text" && (
+            <p className="mb-4 text-gray-700">自身の英作文と模範解答を比較して、どのように修正すべきか考えてください。</p>
+          )}
+          {condition?.trim().toLowerCase() === "ai-wcf" && (
+            <p className="mb-4 text-gray-700">自身の英作文とAIのフィードバックを比較して、どのように修正すべきか考えてください。</p>
+          )}
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <h3 className="font-semibold mb-2">元の文</h3>
@@ -551,7 +569,18 @@ After these fifteen steps, the chocolate is ready to eat. Making chocolate is ha
             </div>
             {condition?.trim().toLowerCase() !== "control" && (
               <div>
-                <h3 className="font-semibold mb-2">参考資料</h3>
+                <h3 className="font-semibold mb-2">
+                  {(() => {
+                    const c = (condition || "").trim().toLowerCase();
+                    return c === "control"
+                      ? "見直し"
+                      : c === "model text"
+                      ? "模範解答"
+                      : c === "ai-wcf"
+                      ? "AIのフィードバック"
+                      : condition;
+                  })()}
+                </h3>
                 {condition?.trim().toLowerCase() === "ai-wcf" && wcfLoading ? (
                   <div className="border p-2 h-64 overflow-y-auto whitespace-pre-line bg-white flex items-center justify-center text-gray-600">
                     <div className="flex items-center space-x-3">
@@ -590,6 +619,7 @@ After these fifteen steps, the chocolate is ready to eat. Making chocolate is ha
           <p className="mb-2 text-gray-700">
             別紙の英作文タスクを参照し、英作文を書き直してください。その際、機械翻訳や生成AIは使用しないでください。
           </p>
+          <p className="mb-4 text-gray-600">機械翻訳や生成AIは使用しないでください。</p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
             {Math.max(0, 1800 - posttestTimer) > 0
