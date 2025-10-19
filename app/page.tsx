@@ -619,7 +619,6 @@ After these fifteen steps, the chocolate is ready to eat. Making chocolate is ha
           <p className="mb-2 text-gray-700">
             別紙の英作文タスクを参照し、英作文を書き直してください。その際、機械翻訳や生成AIは使用しないでください。
           </p>
-          <p className="mb-4 text-gray-600">機械翻訳や生成AIは使用しないでください。</p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
             {Math.max(0, 1800 - posttestTimer) > 0
