@@ -3,14 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import * as XLSX from "xlsx";
 
-// --- 型定義 ---
-type WLEntry = {
-  誤り: string;
-  修正: string;
-  コード: string;
-  説明: string;
-};
-
 export default function WritingPlatform() {
   // --- state 定義 ---
   const [step, setStep] = useState(0);
@@ -23,25 +15,24 @@ export default function WritingPlatform() {
   const [pretestText, setPretestText] = useState("");
   const [wcfText, setWcfText] = useState("");
   const [wcfLoading, setWcfLoading] = useState(false);
-  const [wlEntries, setWlEntries] = useState<WLEntry[]>([]);
   const [posttestText, setPosttestText] = useState("");
   const [surveyAnswers, setSurveyAnswers] = useState<{ [key: string]: number }>({});
 
   // --- 各ステップ開始時間と経過時間 ---
   const [brainstormStart, setBrainstormStart] = useState<number | null>(null);
   const [pretestStart, setPretestStart] = useState<number | null>(null);
-  const [wlStart, setWlStart] = useState<number | null>(null);
+  const [reflectionStart, setReflectionStart] = useState<number | null>(null);
   const [posttestStart, setPosttestStart] = useState<number | null>(null);
 
   const [brainstormElapsed, setBrainstormElapsed] = useState(0);
   const [pretestElapsed, setPretestElapsed] = useState(0);
-  const [wlElapsed, setWlElapsed] = useState(0);
+  const [reflectionElapsed, setReflectionElapsed] = useState(0);
   const [posttestElapsed, setPosttestElapsed] = useState(0);
 
   // --- タイマー用リアルタイム秒数 ---
   const [brainstormTimer, setBrainstormTimer] = useState(0);
   const [pretestTimer, setPretestTimer] = useState(0);
-  const [wlTimer, setWlTimer] = useState(0);
+  const [reflectionTimer, setReflectionTimer] = useState(0);
   const [posttestTimer, setPosttestTimer] = useState(0);
 
   // --- localStorage に保存 ---
@@ -55,12 +46,11 @@ export default function WritingPlatform() {
       brainstormText,
       pretestText,
       wcfText,
-      wlEntries,
       posttestText,
       surveyAnswers,
       brainstormElapsed,
       pretestElapsed,
-      wlElapsed,
+      reflectionElapsed,
       posttestElapsed,
       stateVersion: 2,
     };
@@ -74,12 +64,11 @@ export default function WritingPlatform() {
     brainstormText,
     pretestText,
     wcfText,
-    wlEntries,
     posttestText,
     surveyAnswers,
     brainstormElapsed,
     pretestElapsed,
-    wlElapsed,
+    reflectionElapsed,
     posttestElapsed,
   ]);
 
@@ -101,12 +90,11 @@ export default function WritingPlatform() {
       setBrainstormText(parsed.brainstormText ?? "");
       setPretestText(parsed.pretestText ?? "");
       setWcfText(parsed.wcfText ?? "");
-      setWlEntries(parsed.wlEntries ?? []);
       setPosttestText(parsed.posttestText ?? "");
       setSurveyAnswers(parsed.surveyAnswers ?? {});
       setBrainstormElapsed(parsed.brainstormElapsed ?? 0);
       setPretestElapsed(parsed.pretestElapsed ?? 0);
-      setWlElapsed(parsed.wlElapsed ?? 0);
+      setReflectionElapsed(parsed.reflectionElapsed ?? parsed.wlElapsed ?? 0);
       setPosttestElapsed(parsed.posttestElapsed ?? 0);
     }
   }, []);
@@ -116,11 +104,11 @@ export default function WritingPlatform() {
     const timer = setInterval(() => {
       if (brainstormStart) setBrainstormTimer(Math.floor((Date.now() - brainstormStart) / 1000));
       if (pretestStart) setPretestTimer(Math.floor((Date.now() - pretestStart) / 1000));
-      if (wlStart) setWlTimer(Math.floor((Date.now() - wlStart) / 1000));
+      if (reflectionStart) setReflectionTimer(Math.floor((Date.now() - reflectionStart) / 1000));
       if (posttestStart) setPosttestTimer(Math.floor((Date.now() - posttestStart) / 1000));
     }, 1000);
     return () => clearInterval(timer);
-  }, [brainstormStart, pretestStart, wlStart, posttestStart]);
+  }, [brainstormStart, pretestStart, reflectionStart, posttestStart]);
 
   // --- API保存処理 ---
   const saveProgress = useCallback(async () => {
@@ -140,10 +128,9 @@ export default function WritingPlatform() {
           wcfResult: wcfText,
           posttest: posttestText,
           survey: surveyAnswers,
-          wlEntries,
           brainstormElapsed,
           pretestElapsed,
-          wlElapsed,
+          reflectionElapsed,
           posttestElapsed,
         }),
       });
@@ -161,10 +148,9 @@ export default function WritingPlatform() {
     wcfText,
     posttestText,
     surveyAnswers,
-    wlEntries,
     brainstormElapsed,
     pretestElapsed,
-    wlElapsed,
+    reflectionElapsed,
     posttestElapsed,
   ]);
 
@@ -212,13 +198,13 @@ export default function WritingPlatform() {
 
   const goToPosttest = useCallback(() => {
     if (step !== 5) return;
-    if (wlStart) {
-      setWlElapsed(Math.floor((Date.now() - wlStart) / 1000));
+    if (reflectionStart) {
+      setReflectionElapsed(Math.floor((Date.now() - reflectionStart) / 1000));
     }
     setPosttestStart(Date.now());
     setStep(6);
     saveProgress();
-  }, [saveProgress, step, wlStart]);
+  }, [reflectionStart, saveProgress, step]);
 
   const goToSurveyInstructions = useCallback(() => {
     if (step !== 6) return;
@@ -244,7 +230,7 @@ useEffect(() => {
     if (cond === "control") {
       setWcfText("");
       setStep(5);
-      setWlStart(Date.now());
+      setReflectionStart(Date.now());
     } else if (cond === "model text") {
       setWcfText(`Chocolate is one of the most popular sweets in the world, but making it takes many careful steps from cacao pods to a chocolate bar. First, the cocoa pods must become ripe before farmers can harvest them. After that, they open the pods and take out the beans. The beans are put into a sack, and workers weigh each one to check the amount. Then, they heave the heavy sacks onto a truck and send them to a factory.
 
@@ -254,18 +240,18 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
 
 `);
       setStep(5);
-      setWlStart(Date.now());
+      setReflectionStart(Date.now());
     } else if (cond === "ai-wcf") {
       // Step 4で待機し、生成完了後にStep 5へ遷移
       if (!wcfText && !wcfLoading) {
         setWcfText("");
         setWcfLoading(true);
         generateWCF().then(() => {
-          setWlStart(Date.now());
+          setReflectionStart(Date.now());
           setStep(5);
         });
       } else if (wcfText) {
-        setWlStart(Date.now());
+        setReflectionStart(Date.now());
         setStep(5);
       }
     }
@@ -286,10 +272,10 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
   }, [goToReflectionPreparation, pretestStart, pretestTimer, step]);
 
   useEffect(() => {
-    if (step === 5 && wlStart && wlTimer >= 600) {
+    if (step === 5 && reflectionStart && reflectionTimer >= 600) {
       goToPosttest();
     }
-  }, [goToPosttest, step, wlStart, wlTimer]);
+  }, [goToPosttest, reflectionStart, reflectionTimer, step]);
 
   useEffect(() => {
     if (step === 6 && posttestStart && posttestTimer >= 1800) {
@@ -316,7 +302,7 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
         "⑤ Post-Test": posttestText,
         "Brainstorm(sec)": brainstormElapsed,
         "Pre-Test(sec)": pretestElapsed,
-        "Reflection(sec)": wlElapsed, // 
+        "Reflection(sec)": reflectionElapsed,
         "Post-Test(sec)": posttestElapsed,
         "Pre-Test(words)": wordCount(pretestText),
         "Post-Test(words)": wordCount(posttestText),
@@ -418,10 +404,9 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
                     wcfResult: wcfText,
                     posttest: posttestText,
                     survey: surveyAnswers,
-                    wlEntries,
                     brainstormElapsed,
                     pretestElapsed,
-                    wlElapsed,
+                    reflectionElapsed,
                     posttestElapsed,
                   }),
                 });
@@ -598,8 +583,8 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
           </div>
           <p className="mb-2 text-gray-600">
             残り時間:{" "}
-            {Math.max(0, 600 - wlTimer) > 0
-              ? `${Math.floor((600 - wlTimer) / 60)}:${String((600 - wlTimer) % 60).padStart(2, "0")}`
+            {Math.max(0, 600 - reflectionTimer) > 0
+              ? `${Math.floor((600 - reflectionTimer) / 60)}:${String((600 - reflectionTimer) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
           <button
@@ -643,7 +628,7 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
       {step === 7 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4">次のステップに進む前に</h2>
-          <p className="mb-6 text-gray-700">担当者の指示に従ってください。</p>
+          <p className="mb-6 text-gray-700">この画面が表示されたら挙手で知らせ、少々お待ちください。</p>
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded"
             onClick={goToSurvey}
