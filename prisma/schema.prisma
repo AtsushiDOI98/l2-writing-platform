@@ -18,6 +18,5 @@ model Participant {
   wcfResult   String   @default("")
   posttest    String   @default("")
   survey      Json?
-  wlEntries   Json?
   createdAt   DateTime @default(now())
 }
