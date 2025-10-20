@@ -292,7 +292,7 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
   }, [goToPosttest, step, wlStart, wlTimer]);
 
   useEffect(() => {
-    if (step === 6 && posttestStart && posttestTimer >= 1200) {
+    if (step === 6 && posttestStart && posttestTimer >= 1800) {
       goToSurveyInstructions();
     }
   }, [goToSurveyInstructions, posttestStart, posttestTimer, step]);
