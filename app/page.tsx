@@ -246,9 +246,7 @@ useEffect(() => {
       setStep(5);
       setWlStart(Date.now());
     } else if (cond === "model text") {
-      setWcfText(`Chocolate is one of the most popular sweets in the world, but making it takes many careful steps from cacao pods to a chocolate bar. 
-      
-      First, the cocoa pods must become ripe before farmers can harvest them. After that, they open the pods and take out the beans. The beans are put into a sack, and workers weigh each one to check the amount. Then, they heave the heavy sacks onto a truck and send them to a factory.
+      setWcfText(`Chocolate is one of the most popular sweets in the world, but making it takes many careful steps from cacao pods to a chocolate bar. First, the cocoa pods must become ripe before farmers can harvest them. After that, they open the pods and take out the beans. The beans are put into a sack, and workers weigh each one to check the amount. Then, they heave the heavy sacks onto a truck and send them to a factory.
 
 At the factory, the beans are roasted to give them a good smell. Next, the outer shell is removed, and the inside part is pulverized into fine powder. The powder is then mixed and agitated with other ingredients, such as sugar and milk, to make a smooth liquid. Finally, the liquid chocolate is poured into a mold and left to cool.
 
@@ -282,7 +280,7 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
   }, [brainstormStart, brainstormTimer, goToPretest, step]);
 
   useEffect(() => {
-    if (step === 3 && pretestStart && pretestTimer >= 1200) {
+    if (step === 3 && pretestStart && pretestTimer >= 1800) {
       goToReflectionPreparation();
     }
   }, [goToReflectionPreparation, pretestStart, pretestTimer, step]);
@@ -460,9 +458,9 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
           <h2 className="text-2xl font-semibold mb-4">英作文タスクの流れ</h2>
           <ol className="list-decimal pl-6 space-y-2">
             <li>ブレインストーミング (10分)</li>
-            <li>英作文タスク (20分)</li>
+            <li>英作文タスク (30分)</li>
             <li>振り返り</li>
-            <li>英作文タスク (20分)</li>
+            <li>英作文タスク (30分)</li>
             <li>アンケート</li>
           </ol>
           <button
@@ -502,12 +500,12 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
       {/* Step 3 */}
       {step === 3 && (
         <div>
-          <h3 className="font-semibold mb-2">英作文タスク (20分)</h3>
+          <h3 className="font-semibold mb-2">英作文タスク (30分)</h3>
           <p className="mb-4 text-gray-700">別紙の英作文タスクと自身のブレインストーミングを参照し、英作文を書いてください。その際、機械翻訳や生成AIは使用しないでください。</p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
-            {Math.max(0, 1200 - pretestTimer) > 0
-              ? `${Math.floor((1200 - pretestTimer) / 60)}:${String((1200 - pretestTimer) % 60).padStart(2, "0")}`
+            {Math.max(0, 1800 - pretestTimer) > 0
+              ? `${Math.floor((1800 - pretestTimer) / 60)}:${String((1800 - pretestTimer) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
           <div className="grid grid-cols-2 gap-6">
@@ -616,14 +614,14 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
       {/* Step 6 */}
       {step === 6 && (
         <div>
-          <h3 className="font-semibold mb-2">英作文タスク (20分)</h3>
+          <h3 className="font-semibold mb-2">英作文タスク (30分)</h3>
           <p className="mb-2 text-gray-700">
             別紙の英作文タスクを参照し、英作文を書き直してください。その際、機械翻訳や生成AIは使用しないでください。
           </p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
-            {Math.max(0, 1200 - posttestTimer) > 0
-              ? `${Math.floor((1200 - posttestTimer) / 60)}:${String((1200 - posttestTimer) % 60).padStart(2, "0")}`
+            {Math.max(0, 1800 - posttestTimer) > 0
+              ? `${Math.floor((1800 - posttestTimer) / 60)}:${String((1800 - posttestTimer) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
           <textarea
@@ -713,3 +711,4 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
     </div>
   );
 }
+
