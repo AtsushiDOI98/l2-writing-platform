@@ -35,7 +35,6 @@ export async function POST(req: Request) {
         wcfResult: body.wcfResult || "",
         posttest: body.posttest || "",
         survey: body.survey || {},
-        wlEntries: body.wlEntries || [],
       },
       create: {
         id: body.studentId,            // ← id = 学籍番号
@@ -48,7 +47,6 @@ export async function POST(req: Request) {
         wcfResult: body.wcfResult || "",
         posttest: body.posttest || "",
         survey: body.survey || {},
-        wlEntries: body.wlEntries || [],
       },
     });
 
@@ -57,7 +55,6 @@ export async function POST(req: Request) {
       ...participant,
       condition: assignedCondition.toLowerCase(),
       survey: participant.survey ? JSON.parse(JSON.stringify(participant.survey)) : {},
-      wlEntries: participant.wlEntries ? JSON.parse(JSON.stringify(participant.wlEntries)) : [],
     };
 
     return NextResponse.json(safeParticipant);
