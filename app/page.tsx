@@ -266,7 +266,7 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
   }, [brainstormStart, brainstormTimer, goToPretest, step]);
 
   useEffect(() => {
-    if (step === 3 && pretestStart && pretestTimer >= 1800) {
+    if (step === 3 && pretestStart && pretestTimer >= 1200) {
       goToReflectionPreparation();
     }
   }, [goToReflectionPreparation, pretestStart, pretestTimer, step]);
@@ -278,7 +278,7 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
   }, [goToPosttest, reflectionStart, reflectionTimer, step]);
 
   useEffect(() => {
-    if (step === 6 && posttestStart && posttestTimer >= 1800) {
+    if (step === 6 && posttestStart && posttestTimer >= 1200) {
       goToSurveyInstructions();
     }
   }, [goToSurveyInstructions, posttestStart, posttestTimer, step]);
@@ -443,9 +443,9 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
           <h2 className="text-2xl font-semibold mb-4">英作文タスクの流れ</h2>
           <ol className="list-decimal pl-6 space-y-2">
             <li>ブレインストーミング (10分)</li>
-            <li>英作文タスク (30分)</li>
+            <li>英作文タスク (20分)</li>
             <li>振り返り</li>
-            <li>英作文タスク (30分)</li>
+            <li>英作文タスク (20分)</li>
             <li>アンケート</li>
           </ol>
           <button
@@ -485,12 +485,12 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
       {/* Step 3 */}
       {step === 3 && (
         <div>
-          <h3 className="font-semibold mb-2">英作文タスク (30分)</h3>
+          <h3 className="font-semibold mb-2">英作文タスク (20分)</h3>
           <p className="mb-4 text-gray-700">別紙の英作文タスクと自身のブレインストーミングを参照し、英作文を書いてください。その際、機械翻訳や生成AIは使用しないでください。</p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
-            {Math.max(0, 1800 - pretestTimer) > 0
-              ? `${Math.floor((1800 - pretestTimer) / 60)}:${String((1800 - pretestTimer) % 60).padStart(2, "0")}`
+            {Math.max(0, 1200 - pretestTimer) > 0
+              ? `${Math.floor((1200 - pretestTimer) / 60)}:${String((1200 - pretestTimer) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
           <div className="grid grid-cols-2 gap-6">
@@ -599,14 +599,14 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
       {/* Step 6 */}
       {step === 6 && (
         <div>
-          <h3 className="font-semibold mb-2">英作文タスク (30分)</h3>
+          <h3 className="font-semibold mb-2">英作文タスク (20分)</h3>
           <p className="mb-2 text-gray-700">
             別紙の英作文タスクを参照し、英作文を書き直してください。その際、機械翻訳や生成AIは使用しないでください。
           </p>
           <p className="mb-4 text-gray-600">
             残り時間:{" "}
-            {Math.max(0, 1800 - posttestTimer) > 0
-              ? `${Math.floor((1800 - posttestTimer) / 60)}:${String((1800 - posttestTimer) % 60).padStart(2, "0")}`
+            {Math.max(0, 1200 - posttestTimer) > 0
+              ? `${Math.floor((1200 - posttestTimer) / 60)}:${String((1200 - posttestTimer) % 60).padStart(2, "0")}`
               : "00:00"}
           </p>
           <textarea
