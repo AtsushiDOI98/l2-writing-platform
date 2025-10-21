@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma migrate deploy",
     "load:k6:ramp": "BASE_URL=${BASE_URL:-http://localhost:3000} SCENARIO=ramp TARGET=${TARGET:-participant} k6 run load-test.js",
     "load:k6:rps": "BASE_URL=${BASE_URL:-http://localhost:3000} SCENARIO=rps RATE=${RATE:-20} TARGET=${TARGET:-participant} k6 run load-test.js",
     "load:k6:docker:ramp": "docker run --rm -e BASE_URL -e SCENARIO=ramp -e TARGET -v $PWD:/scripts grafana/k6 run /scripts/load-test.js",
@@ -36,3 +37,4 @@
     "typescript": "^5"
   }
 }
+
