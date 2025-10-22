@@ -2,16 +2,16 @@
   "name": "l2-writing-platform",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
-    "start": "next start",
-    "lint": "eslint",
-    "postinstall": "prisma migrate deploy",
-    "load:k6:ramp": "BASE_URL=${BASE_URL:-http://localhost:3000} SCENARIO=ramp TARGET=${TARGET:-participant} k6 run load-test.js",
-    "load:k6:rps": "BASE_URL=${BASE_URL:-http://localhost:3000} SCENARIO=rps RATE=${RATE:-20} TARGET=${TARGET:-participant} k6 run load-test.js",
-    "load:k6:docker:ramp": "docker run --rm -e BASE_URL -e SCENARIO=ramp -e TARGET -v $PWD:/scripts grafana/k6 run /scripts/load-test.js",
-    "load:k6:docker:rps": "docker run --rm -e BASE_URL -e SCENARIO=rps -e RATE -e TARGET -v $PWD:/scripts grafana/k6 run /scripts/load-test.js"
+ "scripts": {
+  "dev": "next dev",
+  "build": "export DATABASE_URL=$DATABASE_URL && prisma generate && next build",
+  "start": "next start",
+  "lint": "eslint",
+  "postinstall": "prisma migrate deploy",
+  "load:k6:ramp": "BASE_URL=${BASE_URL:-http://localhost:3000} SCENARIO=ramp TARGET=${TARGET:-participant} k6 run load-test.js",
+  "load:k6:rps": "BASE_URL=${BASE_URL:-http://localhost:3000} SCENARIO=rps RATE=${RATE:-20} TARGET=${TARGET:-participant} k6 run load-test.js",
+  "load:k6:docker:ramp": "docker run --rm -e BASE_URL -e SCENARIO=ramp -e TARGET -v $PWD:/scripts grafana/k6 run /scripts/load-test.js",
+  "load:k6:docker:rps": "docker run --rm -e BASE_URL -e SCENARIO=rps -e RATE -e TARGET -v $PWD:/scripts grafana/k6 run /scripts/load-test.js"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",
