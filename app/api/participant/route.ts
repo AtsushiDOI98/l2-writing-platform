@@ -12,12 +12,15 @@ export async function POST(req: Request) {
             ? body.condition.trim().toLowerCase()
             : "";
 
-        // ✅ 自動割り当て（ConditionCounter を使用）
         if (!conditionToUse) {
-          // ✅ id=1 の行をロック（他の行やテーブル全体はブロックしない）
+          // ✅ 行ロックをSQLで明示的に実行
+          await tx.$executeRawUnsafe(
+            `SELECT * FROM "ConditionCounter" WHERE id = 1 FOR UPDATE`
+          );
+
+          // カウンタ取得（ロック済み状態）
           let counter = await tx.conditionCounter.findUnique({
             where: { id: 1 },
-            lock: { mode: "for update" }, // ← これで行ロック
           });
 
           // カウンタがなければ作成（upsertで安全に）
@@ -85,10 +88,10 @@ export async function POST(req: Request) {
 
         return { participant: participantRecord, assignedCondition: conditionToUse };
       },
-      { timeout: 30000 } // ← 30秒に延長（高負荷対応）
+      { timeout: 30000 } // ← 30秒に延長
     );
 
-    // ✅ JSON シリアライズ（BigIntやDate対応）
+    // JSONシリアライズ安全化
     const safeParticipant = {
       ...participant,
       condition: assignedCondition,
@@ -101,10 +104,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("API error:", error);
     return NextResponse.json(
-      {
-        error: "保存に失敗しました",
-        detail: error?.message || "Unknown error",
-      },
+      { error: "保存に失敗しました", detail: error?.message || "Unknown error" },
       { status: 500 }
     );
   }
