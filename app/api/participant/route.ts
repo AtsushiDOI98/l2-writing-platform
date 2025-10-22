@@ -14,21 +14,24 @@ export async function POST(req: Request) {
 
         // ✅ 自動割り当て（ConditionCounter を使用）
         if (!conditionToUse) {
-          // カウンタテーブルをロック
-          await tx.$executeRaw`LOCK TABLE "ConditionCounter" IN EXCLUSIVE MODE`;
-
-          // カウンタがなければ作成
+          // ✅ id=1 の行をロック（他の行やテーブル全体はブロックしない）
           let counter = await tx.conditionCounter.findUnique({
             where: { id: 1 },
+            lock: { mode: "for update" }, // ← これで行ロック
           });
+
+          // カウンタがなければ作成（upsertで安全に）
           if (!counter) {
-            counter = await tx.conditionCounter.create({ data: {} });
+            counter = await tx.conditionCounter.upsert({
+              where: { id: 1 },
+              update: {},
+              create: { id: 1, control: 0, modelText: 0, aiWcf: 0 },
+            });
           }
 
-          // 現在のカウントを取得
           const { control, modelText, aiWcf } = counter;
 
-          // 最も少ないグループを選択
+          // ✅ 最も少ないグループを選択
           const minCount = Math.min(control, modelText, aiWcf);
           if (control === minCount) {
             conditionToUse = "control";
@@ -38,7 +41,7 @@ export async function POST(req: Request) {
             conditionToUse = "ai-wcf";
           }
 
-          // ✅ 選ばれたグループのカウントを+1
+          // ✅ 選ばれたグループのカウントを +1
           await tx.conditionCounter.update({
             where: { id: 1 },
             data: {
@@ -82,10 +85,10 @@ export async function POST(req: Request) {
 
         return { participant: participantRecord, assignedCondition: conditionToUse };
       },
-      { timeout: 10000 } // 10秒タイムアウト（同時アクセスに余裕を持たせる）
+      { timeout: 30000 } // ← 30秒に延長（高負荷対応）
     );
 
-    // JSON シリアライズ（エラー防止）
+    // ✅ JSON シリアライズ（BigIntやDate対応）
     const safeParticipant = {
       ...participant,
       condition: assignedCondition,
@@ -95,13 +98,17 @@ export async function POST(req: Request) {
     };
 
     return NextResponse.json(safeParticipant);
-  } catch (error) {
+  } catch (error: any) {
     console.error("API error:", error);
     return NextResponse.json(
-      { error: "保存に失敗しました" },
+      {
+        error: "保存に失敗しました",
+        detail: error?.message || "Unknown error",
+      },
       { status: 500 }
     );
   }
 }
+
 
 
