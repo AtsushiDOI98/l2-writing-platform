@@ -20,3 +20,13 @@ model Participant {
   survey      Json?
   createdAt   DateTime @default(now())
 }
+
+model ConditionCounter {
+  /// このテーブルはグループ割り当てを均等にするためのカウンタ
+  id         Int      @id @default(1)
+  control    Int      @default(0)
+  modelText  Int      @default(0)
+  aiWcf      Int      @default(0)
+  updatedAt  DateTime @updatedAt
+}
+
