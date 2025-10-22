@@ -5,29 +5,30 @@ export async function POST(req: Request) {
   const body = await req.json();
 
   try {
-    let conditionToUse =
-      typeof body.condition === "string" ? body.condition.trim().toLowerCase() : "";
+    const { participant, assignedCondition } = await prisma.$transaction(async (tx) => {
+      let conditionToUse =
+        typeof body.condition === "string" ? body.condition.trim().toLowerCase() : "";
 
-    // ✅ トランザクション外で condition を決定
-    if (!conditionToUse) {
-      const counts = await prisma.participant.groupBy({
-        by: ["condition"],
-        _count: { condition: true },
-      });
+      if (!conditionToUse) {
+        // 🔒 同時実行防止のためテーブルロック
+        await tx.$executeRaw`LOCK TABLE "Participant" IN SHARE ROW EXCLUSIVE MODE`;
 
-      const conditions = ["control", "model text", "ai-wcf"];
-      const conditionCounts = conditions.map((c) => {
-        const found = counts.find((item) => item.condition === c);
-        return { condition: c, count: found?._count.condition ?? 0 };
-      });
+        const counts = await tx.participant.groupBy({
+          by: ["condition"],
+          _count: { condition: true },
+        });
 
-      conditionCounts.sort((a, b) => a.count - b.count);
-      conditionToUse = conditionCounts[0].condition;
-    }
+        const conditions = ["control", "model text", "ai-wcf"];
+        const conditionCounts = conditions.map((c) => {
+          const found = counts.find((item) => item.condition === c);
+          return { condition: c, count: found?._count.condition ?? 0 };
+        });
 
-    // ✅ upsert のみトランザクションで実行
-    const participant = await prisma.$transaction(async (tx) => {
-      return await tx.participant.upsert({
+        conditionCounts.sort((a, b) => a.count - b.count);
+        conditionToUse = conditionCounts[0].condition;
+      }
+
+      const participantRecord = await tx.participant.upsert({
         where: { id: body.studentId },
         update: {
           name: body.name,
@@ -53,12 +54,13 @@ export async function POST(req: Request) {
           survey: body.survey || {},
         },
       });
-    }, { timeout: 10000 }); // ✅ タイムアウトを10秒に延長
 
-    // ✅ JSON シリアライズ安全化
+      return { participant: participantRecord, assignedCondition: conditionToUse };
+    }, { timeout: 10000 }); // ← 長めに取る
+
     const safeParticipant = {
       ...participant,
-      condition: conditionToUse,
+      condition: assignedCondition,
       survey: participant.survey ? JSON.parse(JSON.stringify(participant.survey)) : {},
     };
 
@@ -68,6 +70,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "保存に失敗しました" }, { status: 500 });
   }
 }
-
 
 
