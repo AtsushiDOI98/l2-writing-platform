@@ -83,7 +83,8 @@ export async function POST(req: Request) {
         return { participant: participantRecord, assignedCondition: conditionToUse };
       },
       {
-        timeout: 30000, // ← 高負荷時でも余裕を持たせる（30秒）
+        timeout: 60000,              // ← 長めに余裕を取る
+        isolationLevel: "Serializable",
       }
     );
 
