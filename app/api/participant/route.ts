@@ -6,90 +6,78 @@ export async function POST(req: Request) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // -------------------------------------------------------
-      // ① ConditionCounter のアトミック更新 (行ロック不要)
-      // -------------------------------------------------------
+      // ① まずカウンタをアトミックに更新（最小の列を自動判定）
+      const counter = await tx.$queryRaw<
+        { control: number; modeltext: number; aiwcf: number }[]
+      >`
+        UPDATE "ConditionCounter"
+        SET
+          control = control + CASE 
+                      WHEN control <= modelText AND control <= aiWcf THEN 1
+                      ELSE 0
+                    END,
+          modelText = modelText + CASE
+                        WHEN modelText < control AND modelText <= aiWcf THEN 1
+                        ELSE 0
+                      END,
+          aiWcf = aiWcf + CASE
+                    WHEN aiWcf < control AND aiWcf < modelText THEN 1
+                    ELSE 0
+                  END
+        WHERE id = 1
+        RETURNING control, modelText, aiWcf;
+      `;
 
-      // カウンタ行がなければ自動作成
-      let counter = await tx.conditionCounter.findUnique({ where: { id: 1 } });
+      const updated = counter[0];
 
-      if (!counter) {
-        counter = await tx.conditionCounter.create({
-          data: { id: 1, control: 0, modelText: 0, aiWcf: 0 },
-        });
-      }
-
-      // 次の割り当てを判定
-      const { control, modelText, aiWcf } = counter;
-
-      let assignedCondition = "";
-      const minVal = Math.min(control, modelText, aiWcf);
-
-      if (control === minVal) assignedCondition = "control";
-      else if (modelText === minVal) assignedCondition = "model text";
-      else assignedCondition = "ai-wcf";
-
-      // 割り当てたグループのカウンタを +1（アトミック更新）
-      if (assignedCondition === "control") {
-        await tx.conditionCounter.update({
-          where: { id: 1 },
-          data: { control: { increment: 1 } },
-        });
-      } else if (assignedCondition === "model text") {
-        await tx.conditionCounter.update({
-          where: { id: 1 },
-          data: { modelText: { increment: 1 } },
-        });
+      // ② 割り当てられた condition を逆算
+      let conditionToUse = "";
+      if (updated.control >= updated.modeltext && updated.control >= updated.aiwcf) {
+        conditionToUse = "control";
+      } else if (updated.modeltext >= updated.control && updated.modeltext >= updated.aiwcf) {
+        conditionToUse = "model text";
       } else {
-        await tx.conditionCounter.update({
-          where: { id: 1 },
-          data: { aiWcf: { increment: 1 } },
-        });
+        conditionToUse = "ai-wcf";
       }
 
-      // -------------------------------------------------------
-      // ② Participant の作成 or 更新
-      // -------------------------------------------------------
+      // ③ Participant 登録
       const participant = await tx.participant.upsert({
         where: { id: body.studentId },
         update: {
           name: body.name,
           className: body.className,
-          condition: assignedCondition,
+          condition: conditionToUse,
           currentStep: body.currentStep ?? 0,
           brainstorm: body.brainstorm || "",
           pretest: body.pretest || "",
           wcfResult: body.wcfResult || "",
           posttest: body.posttest || "",
-          survey: body.survey || null,
+          survey: body.survey || {},
         },
         create: {
           id: body.studentId,
           name: body.name,
           className: body.className,
-          condition: assignedCondition,
+          condition: conditionToUse,
           currentStep: body.currentStep ?? 0,
           brainstorm: body.brainstorm || "",
           pretest: body.pretest || "",
           wcfResult: body.wcfResult || "",
           posttest: body.posttest || "",
-          survey: body.survey || null,
+          survey: body.survey || {},
         },
       });
 
-      return { participant, assignedCondition };
+      return { participant, conditionToUse };
     });
 
     return NextResponse.json({
       ...result.participant,
-      condition: result.assignedCondition,
+      condition: result.conditionToUse,
     });
-  } catch (e: any) {
-    console.error("API error:", e);
-    return NextResponse.json(
-      { error: "Internal Server Error", detail: e.message || e },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("API error:", error);
+    return NextResponse.json({ error: "保存失敗" }, { status: 500 });
   }
 }
 
