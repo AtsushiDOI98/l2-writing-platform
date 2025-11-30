@@ -8,36 +8,43 @@ export async function POST(req: Request) {
     const { participant, assignedCondition } = await prisma.$transaction(
       async (tx) => {
         // -------------------------------------------
-        // ① ConditionCounter を行ロック（SELECT FOR UPDATE）
+        // ① ConditionCounter を SELECT ... FOR UPDATE で行ロック
         // -------------------------------------------
-        let counter = await tx.$queryRawUnsafe(
+        let counterRaw: any[] = await tx.$queryRawUnsafe(
           `SELECT * FROM "ConditionCounter" WHERE id = 1 FOR UPDATE`
         );
 
-        // クエリ結果（Raw）は配列なので調整
-        counter = counter?.[0] || null;
+        let counter = counterRaw.length > 0 ? counterRaw[0] : null;
 
-        // 初回（行が存在しない場合）
+        // -------------------------------------------
+        // ② 初回（まだ行が存在しない場合）
+        // -------------------------------------------
         if (!counter) {
           await tx.conditionCounter.create({
             data: { id: 1, control: 0, modelText: 0, aiWcf: 0 },
           });
+
           counter = { id: 1, control: 0, modeltext: 0, aiwcf: 0 };
         }
 
+        // PrismaRaw のカラム名は小文字になる可能性があるので対応
+        const control = counter.control ?? counter.control ?? 0;
+        const modelText = counter.modelText ?? counter.modeltext ?? 0;
+        const aiWcf = counter.aiWcf ?? counter.aiwcf ?? 0;
+
         // -------------------------------------------
-        // ② 最小のカウンターを持つグループに追加
-        --------------------------------------------
-        const { control, modelText, aiWcf } = counter;
-
+        // ③ 最小のカウンターを持つ条件へ割り当て
+        // -------------------------------------------
         const minCount = Math.min(control, modelText, aiWcf);
-        let conditionToUse = "";
 
+        let conditionToUse = "";
         if (control === minCount) conditionToUse = "control";
         else if (modelText === minCount) conditionToUse = "model text";
         else conditionToUse = "ai-wcf";
 
-        // カウンターを +1 更新
+        // -------------------------------------------
+        // ④ カウンターを +1 更新
+        // -------------------------------------------
         await tx.conditionCounter.update({
           where: { id: 1 },
           data: {
@@ -48,7 +55,7 @@ export async function POST(req: Request) {
         });
 
         // -------------------------------------------
-        // ③ Participant を upsert（Elapsed 系なし）
+        // ⑤ Participant upsert（Elapsed 系なし）
         // -------------------------------------------
         const participantRecord = await tx.participant.upsert({
           where: { id: body.studentId },
@@ -97,4 +104,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
