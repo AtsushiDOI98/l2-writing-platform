@@ -16,9 +16,7 @@ export async function POST(req: Request) {
       // ============================
 
       // ① Queue に自分の順番行を追加
-      const myQueue = await tx.assignQueue.create({
-        data: {},
-      });
+      const myQueue = await tx.assignQueue.create({ data: {} });
 
       // ② 自分より前の並び順が終わるまで待つ
       await tx.$queryRawUnsafe(`
@@ -27,22 +25,37 @@ export async function POST(req: Request) {
         FOR UPDATE
       `);
 
-      // ③ 安全に ConditionCounter を読み取り
-      const counter = await tx.conditionCounter.upsert({
+      // ============================
+      // ③ ConditionCounter を安全に読み取り（upsert禁止）
+      // ============================
+
+      let counter = await tx.conditionCounter.findUnique({
         where: { id: 1 },
-        create: { id: 1, control: 0, modelText: 0, aiWcf: 0 },
-        update: {},
       });
+
+      if (!counter) {
+        counter = await tx.conditionCounter.create({
+          data: {
+            id: 1,
+            control: 0,
+            modelText: 0,
+            aiWcf: 0,
+          },
+        });
+      }
 
       const { control, modelText, aiWcf } = counter;
 
+      // ============================
+      // ④ 自動条件割り当て
+      // ============================
       if (!conditionToUse) {
         const minCount = Math.min(control, modelText, aiWcf);
+
         if (control === minCount) conditionToUse = "control";
         else if (modelText === minCount) conditionToUse = "model text";
         else conditionToUse = "ai-wcf";
 
-        // カウンタ更新
         await tx.conditionCounter.update({
           where: { id: 1 },
           data: {
@@ -54,7 +67,9 @@ export async function POST(req: Request) {
         });
       }
 
-      // ④ Participant を登録
+      // ============================
+      // ⑤ Participant を登録
+      // ============================
       const participantRecord = await tx.participant.upsert({
         where: { id: body.studentId },
         update: {
@@ -105,4 +120,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
 
