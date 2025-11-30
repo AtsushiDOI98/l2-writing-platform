@@ -1,10 +1,10 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model Participant {
@@ -13,24 +13,26 @@ model Participant {
   className   String
   condition   String
   currentStep Int      @default(0)
+
   brainstorm  String   @default("")
   pretest     String   @default("")
   wcfResult   String   @default("")
   posttest    String   @default("")
+
   survey      Json?
+
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model ConditionCounter {
-  id         Int      @id @default(1)
-  control    Int      @default(0)
-  modelText  Int      @default(0)
-  aiWcf      Int      @default(0)
-  updatedAt  DateTime @updatedAt
+  id        Int      @id
+  control   Int      @default(0)
+  modelText Int      @default(0)
+  aiWcf     Int      @default(0)
 }
 
 model AssignQueue {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
 }
-
