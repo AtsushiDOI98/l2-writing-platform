@@ -8,11 +8,11 @@ generator client {
 }
 
 model Participant {
-  id          String   @id               // 学籍番号（ユニーク）
+  id          String   @id
   name        String
   className   String
   condition   String
-  currentStep Int      @default(0)       // 現在のステップ
+  currentStep Int      @default(0)
   brainstorm  String   @default("")
   pretest     String   @default("")
   wcfResult   String   @default("")
@@ -22,11 +22,15 @@ model Participant {
 }
 
 model ConditionCounter {
-  /// このテーブルはグループ割り当てを均等にするためのカウンタ
   id         Int      @id @default(1)
   control    Int      @default(0)
   modelText  Int      @default(0)
   aiWcf      Int      @default(0)
   updatedAt  DateTime @updatedAt
+}
+
+model AssignQueue {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
 }
 
