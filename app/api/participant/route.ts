@@ -7,20 +7,15 @@ export async function POST(req: Request) {
   try {
     const { participant, assignedCondition } = await prisma.$transaction(
       async (tx) => {
-        let conditionToUse =
-          typeof body.condition === "string"
-            ? body.condition.trim().toLowerCase()
-            : "";
-
-        // -------------------------------------
-        // 1. ConditionCounter を FOR UPDATE で行ロック
-        // -------------------------------------
+        // ---------------------------
+        // 1. ConditionCounter を FOR UPDATE 行ロック
+        // ---------------------------
         let counter: any[] = await tx.$queryRawUnsafe(
           `SELECT * FROM "ConditionCounter" WHERE id = 1 FOR UPDATE`
         );
 
+        // → counter が empty の場合、初期行を作る
         if (counter.length === 0) {
-          // 初期行がない場合は作成
           await tx.$executeRawUnsafe(
             `INSERT INTO "ConditionCounter"(id, control, "modelText", "aiWcf")
              VALUES (1, 0, 0, 0)`
@@ -33,9 +28,14 @@ export async function POST(req: Request) {
 
         const { control, modelText, aiWcf } = counter[0];
 
-        // -------------------------------------
-        // 2. 最小カウントで条件を割り振り
-        // -------------------------------------
+        // ---------------------------
+        // 2. グループの自動割り振り
+        // ---------------------------
+        let conditionToUse =
+          typeof body.condition === "string"
+            ? body.condition.trim().toLowerCase()
+            : "";
+
         if (!conditionToUse) {
           const minCount = Math.min(control, modelText, aiWcf);
 
@@ -43,7 +43,6 @@ export async function POST(req: Request) {
           else if (modelText === minCount) conditionToUse = "model text";
           else conditionToUse = "ai-wcf";
 
-          // カウンター更新
           await tx.$executeRawUnsafe(
             `UPDATE "ConditionCounter"
              SET control = control + $1,
@@ -56,9 +55,9 @@ export async function POST(req: Request) {
           );
         }
 
-        // -------------------------------------
-        // 3. Participant の upsert
-        // -------------------------------------
+        // ---------------------------
+        // 3. Participant を upsert
+        // ---------------------------
         const participantRecord = await tx.participant.upsert({
           where: { id: body.studentId },
           update: {
@@ -107,7 +106,16 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ...participant,
       condition: assignedCondition,
-      s
-
-
+      survey: participant.survey
+        ? JSON.parse(JSON.stringify(participant.survey))
+        : {},
+    });
+  } catch (error: any) {
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "保存に失敗しました", detail: error?.message },
+      { status: 500 }
+    );
+  }
+}
 
