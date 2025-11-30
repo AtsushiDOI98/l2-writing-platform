@@ -5,110 +5,88 @@ export async function POST(req: Request) {
   const body = await req.json();
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      let conditionToUse =
-        typeof body.condition === "string"
-          ? body.condition.trim().toLowerCase()
-          : "";
+    let conditionToUse =
+      typeof body.condition === "string"
+        ? body.condition.trim().toLowerCase()
+        : "";
 
-      // ============================
-      // Queue 方式（最強・デッドロックなし）
-      // ============================
+    // ================================
+    // ① 自動割り当て（原子的インクリメント方式）
+    // ================================
+    if (!conditionToUse) {
+      const updated = await prisma.$queryRaw<{
+        assigned: string;
+        control: number;
+        modelText: number;
+        aiWcf: number;
+      }[]>`
+        UPDATE "ConditionCounter"
+        SET
+          control = control + CASE
+                      WHEN control <= "modelText" AND control <= "aiWcf"
+                        THEN 1 ELSE 0 END,
+          "modelText" = "modelText" + CASE
+                      WHEN "modelText" < control AND "modelText" <= "aiWcf"
+                        THEN 1 ELSE 0 END,
+          "aiWcf" = "aiWcf" + CASE
+                      WHEN "aiWcf" < control AND "aiWcf" < "modelText"
+                        THEN 1 ELSE 0 END
+        WHERE id = 1
+        RETURNING
+          CASE
+            WHEN control <= "modelText" AND control <= "aiWcf"
+              THEN 'control'
+            WHEN "modelText" < control AND "modelText" <= "aiWcf"
+              THEN 'model text'
+            ELSE 'ai-wcf'
+          END AS assigned,
+          control,
+          "modelText",
+          "aiWcf";
+      `;
 
-      // ① Queue に自分の順番行を追加
-      const myQueue = await tx.assignQueue.create({ data: {} });
+      conditionToUse = updated[0].assigned;
+    }
 
-      // ② 自分より前の並び順が終わるまで待つ
-      await tx.$queryRawUnsafe(`
-        SELECT id FROM "AssignQueue"
-        WHERE id < ${myQueue.id}
-        FOR UPDATE
-      `);
-
-      // ============================
-      // ③ ConditionCounter を安全に読み取り（upsert禁止）
-      // ============================
-
-      let counter = await tx.conditionCounter.findUnique({
-        where: { id: 1 },
-      });
-
-      if (!counter) {
-        counter = await tx.conditionCounter.create({
-          data: {
-            id: 1,
-            control: 0,
-            modelText: 0,
-            aiWcf: 0,
-          },
-        });
-      }
-
-      const { control, modelText, aiWcf } = counter;
-
-      // ============================
-      // ④ 自動条件割り当て
-      // ============================
-      if (!conditionToUse) {
-        const minCount = Math.min(control, modelText, aiWcf);
-
-        if (control === minCount) conditionToUse = "control";
-        else if (modelText === minCount) conditionToUse = "model text";
-        else conditionToUse = "ai-wcf";
-
-        await tx.conditionCounter.update({
-          where: { id: 1 },
-          data: {
-            control: conditionToUse === "control" ? control + 1 : control,
-            modelText:
-              conditionToUse === "model text" ? modelText + 1 : modelText,
-            aiWcf: conditionToUse === "ai-wcf" ? aiWcf + 1 : aiWcf,
-          },
-        });
-      }
-
-      // ============================
-      // ⑤ Participant を登録
-      // ============================
-      const participantRecord = await tx.participant.upsert({
-        where: { id: body.studentId },
-        update: {
-          name: body.name,
-          className: body.className,
-          condition: conditionToUse,
-          currentStep: body.currentStep ?? 0,
-          brainstorm: body.brainstorm || "",
-          pretest: body.pretest || "",
-          wcfResult: body.wcfResult || "",
-          posttest: body.posttest || "",
-          survey: body.survey || {},
-        },
-        create: {
-          id: body.studentId,
-          name: body.name,
-          className: body.className,
-          condition: conditionToUse,
-          currentStep: body.currentStep ?? 0,
-          brainstorm: body.brainstorm || "",
-          pretest: body.pretest || "",
-          wcfResult: body.wcfResult || "",
-          posttest: body.posttest || "",
-          survey: body.survey || {},
-        },
-      });
-
-      return { participant: participantRecord, assignedCondition: conditionToUse };
+    // ================================
+    // ② Participant 保存
+    // ================================
+    const participant = await prisma.participant.upsert({
+      where: { id: body.studentId },
+      update: {
+        name: body.name,
+        className: body.className,
+        condition: conditionToUse,
+        currentStep: body.currentStep ?? 0,
+        brainstorm: body.brainstorm || "",
+        pretest: body.pretest || "",
+        wcfResult: body.wcfResult || "",
+        posttest: body.posttest || "",
+        survey: body.survey || {},
+      },
+      create: {
+        id: body.studentId,
+        name: body.name,
+        className: body.className,
+        condition: conditionToUse,
+        currentStep: body.currentStep ?? 0,
+        brainstorm: body.brainstorm || "",
+        pretest: body.pretest || "",
+        wcfResult: body.wcfResult || "",
+        posttest: body.posttest || "",
+        survey: body.survey || {},
+      },
     });
 
-    const { participant, assignedCondition } = result;
-
+    // 返却
     return NextResponse.json({
       ...participant,
-      condition: assignedCondition,
+      condition: conditionToUse,
       survey: participant.survey
         ? JSON.parse(JSON.stringify(participant.survey))
         : {},
     });
+
   } catch (error: any) {
     console.error("API error:", error);
     return NextResponse.json(
@@ -120,5 +98,6 @@ export async function POST(req: Request) {
     );
   }
 }
+
 
 
