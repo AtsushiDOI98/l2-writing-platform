@@ -10,17 +10,24 @@ export async function POST(req: Request) {
   try {
     const result = await prisma.$transaction(
       async (tx) => {
+        //
+        // --------------- ① 条件が指定されていなければ自動割り当て ---------------
+        //
         let conditionToUse =
           typeof body.condition === "string"
             ? body.condition.trim().toLowerCase()
             : "";
 
-        // ---------------------------
-        // ① condition が未指定なら均等自動割り当て
-        // ---------------------------
         if (!conditionToUse) {
-          // -------- ①-1 アトミック SQL による自動 +1 更新 --------
-          const counter = await tx.$queryRaw<
+          // ConditionCounter が存在しない可能性がある → 先に保証
+          await tx.conditionCounter.upsert({
+            where: { id: 1 },
+            create: { id: 1, control: 0, modelText: 0, aiWcf: 0 },
+            update: {},
+          });
+
+          // -------- アトミック更新（均等 3 分割） --------
+          const updatedRows = await tx.$queryRaw<
             { control: number; modelText: number; aiWcf: number }[]
           >`
             UPDATE "ConditionCounter"
@@ -41,9 +48,9 @@ export async function POST(req: Request) {
             RETURNING control, "modelText", "aiWcf";
           `;
 
-          const updated = counter[0];
+          const updated = updatedRows[0];
 
-          // -------- ①-2 割り当てられたグループを逆算 --------
+          // -------- 逆算してどの condition が付与されたか決める --------
           if (
             updated.control >= updated.modelText &&
             updated.control >= updated.aiWcf
@@ -59,9 +66,9 @@ export async function POST(req: Request) {
           }
         }
 
-        // ---------------------------
-        // ② Participant upsert
-        // ---------------------------
+        //
+        // --------------- ② Participant を upsert (登録 / 更新) ---------------
+        //
         const participant = await tx.participant.upsert({
           where: { id: body.studentId },
           update: {
@@ -89,24 +96,23 @@ export async function POST(req: Request) {
           },
         });
 
-        return { participant, assigned: conditionToUse };
+        return {
+          participant,
+          assignedCondition: conditionToUse,
+        };
       },
-
-      // ---------------------------
-      // トランザクション設定
-      // ---------------------------
       {
         timeout: 60000,
-        isolationLevel: "Serializable", // ← 衝突を安全に排除
+        isolationLevel: "Serializable",
       }
     );
 
-    // ---------------------------
-    // ③ JSON返却（安全化）
-    // ---------------------------
+    //
+    // --------------- ③ JSON 返却 ---------------
+    //
     return NextResponse.json({
       ...result.participant,
-      condition: result.assigned,
+      condition: result.assignedCondition,
       survey: result.participant.survey
         ? JSON.parse(JSON.stringify(result.participant.survey))
         : {},
