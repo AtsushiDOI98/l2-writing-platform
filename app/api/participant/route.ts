@@ -5,60 +5,64 @@ export async function POST(req: Request) {
   const body = await req.json();
 
   try {
-    // ---------------------------------------------------------
-    // ① ConditionCounter をロックして group を決める
-    // ---------------------------------------------------------
-    const assignedCondition = await prisma.$transaction(
-      async (tx) => {
-        // テーブルロック（完全3等分の要）
-        await tx.$executeRawUnsafe(
-          `LOCK TABLE "ConditionCounter" IN EXCLUSIVE MODE`
-        );
+    // ① queue に順番券を発行
+    const queueItem = await prisma.assignQueue.create({
+      data: {},
+    });
 
-        // 行が無い場合は作成
-        const counter = await tx.conditionCounter.upsert({
-          where: { id: 1 },
-          create: { id: 1, control: 0, modelText: 0, aiWcf: 0 },
-          update: {},
-        });
+    const myTurn = queueItem.id;
 
-        const { control, modelText, aiWcf } = counter;
+    // ② 自分の番になるまで待つ（順番方式）
+    //   → これで衝突ゼロになる
+    while (true) {
+      const smallest = await prisma.assignQueue.findFirst({
+        orderBy: { id: "asc" },
+      });
 
-        // 最小値を判定（完全3等分の決定ロジック）
-        const minCount = Math.min(control, modelText, aiWcf);
-        let conditionToUse = "";
+      if (smallest && smallest.id === myTurn) break;
 
-        if (control === minCount) conditionToUse = "control";
-        else if (modelText === minCount) conditionToUse = "model text";
-        else conditionToUse = "ai-wcf";
+      // CPU使用率を上げないよう少し待つ
+      await new Promise((r) => setTimeout(r, 50));
+    }
 
-        // 選ばれた条件のカウントを +1
-        await tx.conditionCounter.update({
-          where: { id: 1 },
-          data: {
-            control: conditionToUse === "control" ? control + 1 : control,
-            modelText: conditionToUse === "model text" ? modelText + 1 : modelText,
-            aiWcf: conditionToUse === "ai-wcf" ? aiWcf + 1 : aiWcf,
-          },
-        });
+    // ③ ここから「自分の番」なので安全に割り当て処理
+    let conditionToUse =
+      typeof body.condition === "string"
+        ? body.condition.trim().toLowerCase()
+        : "";
 
-        return conditionToUse;
-      },
-      {
-        isolationLevel: "Serializable",
-        timeout: 20000, // 20秒（安全）
-      }
-    );
+    if (!conditionToUse) {
+      // ConditionCounter を取得（なければ作成）
+      const counter = await prisma.conditionCounter.upsert({
+        where: { id: 1 },
+        create: { id: 1, control: 0, modelText: 0, aiWcf: 0 },
+        update: {},
+      });
 
-    // ---------------------------------------------------------
-    // ② Participant の upsert（ロックなし、軽く高速）
-    // ---------------------------------------------------------
+      const { control, modelText, aiWcf } = counter;
+
+      const minVal = Math.min(control, modelText, aiWcf);
+      if (control === minVal) conditionToUse = "control";
+      else if (modelText === minVal) conditionToUse = "model text";
+      else conditionToUse = "ai-wcf";
+
+      await prisma.conditionCounter.update({
+        where: { id: 1 },
+        data: {
+          control: conditionToUse === "control" ? control + 1 : control,
+          modelText: conditionToUse === "model text" ? modelText + 1 : modelText,
+          aiWcf: conditionToUse === "ai-wcf" ? aiWcf + 1 : aiWcf,
+        },
+      });
+    }
+
+    // ④ Participant を upsert
     const participant = await prisma.participant.upsert({
       where: { id: body.studentId },
       update: {
         name: body.name,
         className: body.className,
-        condition: assignedCondition,
+        condition: conditionToUse,
         currentStep: body.currentStep ?? 0,
         brainstorm: body.brainstorm || "",
         pretest: body.pretest || "",
@@ -70,7 +74,7 @@ export async function POST(req: Request) {
         id: body.studentId,
         name: body.name,
         className: body.className,
-        condition: assignedCondition,
+        condition: conditionToUse,
         currentStep: body.currentStep ?? 0,
         brainstorm: body.brainstorm || "",
         pretest: body.pretest || "",
@@ -80,24 +84,19 @@ export async function POST(req: Request) {
       },
     });
 
-    // ---------------------------------------------------------
-    // ③ JSON-safe で返す
-    // ---------------------------------------------------------
-    return NextResponse.json({
-      ...participant,
-      condition: assignedCondition,
-      survey: participant.survey
-        ? JSON.parse(JSON.stringify(participant.survey))
-        : {},
+    // ⑤ 最後に queue から自分を削除（次の人が処理できる）
+    await prisma.assignQueue.delete({
+      where: { id: myTurn },
     });
 
+    return NextResponse.json({
+      ...participant,
+      condition: conditionToUse,
+    });
   } catch (error: any) {
     console.error("API error:", error);
     return NextResponse.json(
-      {
-        error: "保存に失敗しました",
-        detail: error?.message || "Unknown error",
-      },
+      { error: "保存に失敗しました", detail: error?.message },
       { status: 500 }
     );
   }
