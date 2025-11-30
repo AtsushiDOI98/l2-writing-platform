@@ -1,4 +1,3 @@
-// /app/api/participant/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -13,44 +12,53 @@ export async function POST(req: Request) {
             ? body.condition.trim().toLowerCase()
             : "";
 
-        // -------------------------
-        // 1. 自動割り振り（行ロック版）
-        // -------------------------
+        // -------------------------------------
+        // 1. ConditionCounter を FOR UPDATE で行ロック
+        // -------------------------------------
+        let counter: any[] = await tx.$queryRawUnsafe(
+          `SELECT * FROM "ConditionCounter" WHERE id = 1 FOR UPDATE`
+        );
+
+        if (counter.length === 0) {
+          // 初期行がない場合は作成
+          await tx.$executeRawUnsafe(
+            `INSERT INTO "ConditionCounter"(id, control, "modelText", "aiWcf")
+             VALUES (1, 0, 0, 0)`
+          );
+
+          counter = [
+            { id: 1, control: 0, modelText: 0, aiWcf: 0 }
+          ];
+        }
+
+        const { control, modelText, aiWcf } = counter[0];
+
+        // -------------------------------------
+        // 2. 最小カウントで条件を割り振り
+        // -------------------------------------
         if (!conditionToUse) {
-          // ConditionCounter の1行だけをロック（高速・安全）
-          let counter = await tx.conditionCounter.findUnique({
-            where: { id: 1 },
-            lock: { mode: "update" }, // ← 行ロック発動
-          });
-
-          // 初回（まだ行がない場合）
-          if (!counter) {
-            counter = await tx.conditionCounter.create({
-              data: { id: 1, control: 0, modelText: 0, aiWcf: 0 },
-            });
-          }
-
-          const { control, modelText, aiWcf } = counter;
           const minCount = Math.min(control, modelText, aiWcf);
 
           if (control === minCount) conditionToUse = "control";
           else if (modelText === minCount) conditionToUse = "model text";
           else conditionToUse = "ai-wcf";
 
-          // カウンタ更新
-          await tx.conditionCounter.update({
-            where: { id: 1 },
-            data: {
-              control: control + (conditionToUse === "control" ? 1 : 0),
-              modelText: modelText + (conditionToUse === "model text" ? 1 : 0),
-              aiWcf: aiWcf + (conditionToUse === "ai-wcf" ? 1 : 0),
-            },
-          });
+          // カウンター更新
+          await tx.$executeRawUnsafe(
+            `UPDATE "ConditionCounter"
+             SET control = control + $1,
+                 "modelText" = "modelText" + $2,
+                 "aiWcf" = "aiWcf" + $3
+             WHERE id = 1`,
+            conditionToUse === "control" ? 1 : 0,
+            conditionToUse === "model text" ? 1 : 0,
+            conditionToUse === "ai-wcf" ? 1 : 0
+          );
         }
 
-        // -------------------------
-        // 2. Participant のアップサート
-        // -------------------------
+        // -------------------------------------
+        // 3. Participant の upsert
+        // -------------------------------------
         const participantRecord = await tx.participant.upsert({
           where: { id: body.studentId },
           update: {
@@ -96,26 +104,10 @@ export async function POST(req: Request) {
       }
     );
 
-    // Prisma オブジェクトの安全変換
-    const safeParticipant = {
+    return NextResponse.json({
       ...participant,
       condition: assignedCondition,
-      survey: participant.survey
-        ? JSON.parse(JSON.stringify(participant.survey))
-        : {},
-    };
+      s
 
-    return NextResponse.json(safeParticipant);
-  } catch (error: any) {
-    console.error("API error:", error);
-    return NextResponse.json(
-      {
-        error: "保存に失敗しました",
-        detail: error?.message || "Unknown error",
-      },
-      { status: 500 }
-    );
-  }
-}
 
 
