@@ -4,72 +4,55 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   const body = await req.json();
 
-  // 🔥 同時アクセスをばらけさせる（50〜150ms）
-  await new Promise((r) => setTimeout(r, Math.random() * 100 + 50));
-
   try {
-    const result = await prisma.$transaction(
+    // Prisma トランザクション開始
+    const { participant, assignedCondition } = await prisma.$transaction(
       async (tx) => {
-        //
-        // --------------- ① 条件が指定されていなければ自動割り当て ---------------
-        //
         let conditionToUse =
           typeof body.condition === "string"
             ? body.condition.trim().toLowerCase()
             : "";
 
+        // ✅ 自動割り当て（ConditionCounterを使う場合のみ）
         if (!conditionToUse) {
-          // ConditionCounter が存在しない可能性がある → 先に保証
-          await tx.conditionCounter.upsert({
+          // ✅ テーブルロックで排他制御（同時アクセス防止）
+          await tx.$executeRawUnsafe(
+            `LOCK TABLE "ConditionCounter" IN EXCLUSIVE MODE`
+          );
+
+          // ✅ 1行だけ存在するConditionCounterを安全に取得・作成
+          const counter = await tx.conditionCounter.upsert({
             where: { id: 1 },
             create: { id: 1, control: 0, modelText: 0, aiWcf: 0 },
-            update: {},
+            update: {}, // 既存の場合は何もしない
           });
 
-          // -------- アトミック更新（均等 3 分割） --------
-          const updatedRows = await tx.$queryRaw<
-            { control: number; modelText: number; aiWcf: number }[]
-          >`
-            UPDATE "ConditionCounter"
-            SET
-              control = control + CASE 
-                          WHEN control <= "modelText" AND control <= "aiWcf" THEN 1
-                          ELSE 0
-                        END,
-              "modelText" = "modelText" + CASE
-                                WHEN "modelText" < control AND "modelText" <= "aiWcf" THEN 1
-                                ELSE 0
-                              END,
-              "aiWcf" = "aiWcf" + CASE
-                            WHEN "aiWcf" < control AND "aiWcf" < "modelText" THEN 1
-                            ELSE 0
-                          END
-            WHERE id = 1
-            RETURNING control, "modelText", "aiWcf";
-          `;
+          const { control, modelText, aiWcf } = counter;
 
-          const updated = updatedRows[0];
-
-          // -------- 逆算してどの condition が付与されたか決める --------
-          if (
-            updated.control >= updated.modelText &&
-            updated.control >= updated.aiWcf
-          ) {
+          // ✅ 最小値の条件を自動選択
+          const minCount = Math.min(control, modelText, aiWcf);
+          if (control === minCount) {
             conditionToUse = "control";
-          } else if (
-            updated.modelText >= updated.control &&
-            updated.modelText >= updated.aiWcf
-          ) {
+          } else if (modelText === minCount) {
             conditionToUse = "model text";
           } else {
             conditionToUse = "ai-wcf";
           }
+
+          // ✅ 選ばれたグループのカウントを+1更新
+          await tx.conditionCounter.update({
+            where: { id: 1 },
+            data: {
+              control: conditionToUse === "control" ? control + 1 : control,
+              modelText:
+                conditionToUse === "model text" ? modelText + 1 : modelText,
+              aiWcf: conditionToUse === "ai-wcf" ? aiWcf + 1 : aiWcf,
+            },
+          });
         }
 
-        //
-        // --------------- ② Participant を upsert (登録 / 更新) ---------------
-        //
-        const participant = await tx.participant.upsert({
+        // ✅ Participant（参加者）の登録・更新
+        const participantRecord = await tx.participant.upsert({
           where: { id: body.studentId },
           update: {
             name: body.name,
@@ -96,27 +79,25 @@ export async function POST(req: Request) {
           },
         });
 
-        return {
-          participant,
-          assignedCondition: conditionToUse,
-        };
+        // 返却データ
+        return { participant: participantRecord, assignedCondition: conditionToUse };
       },
       {
-        timeout: 60000,
+        timeout: 60000,              // ← 長めに余裕を取る
         isolationLevel: "Serializable",
       }
     );
 
-    //
-    // --------------- ③ JSON 返却 ---------------
-    //
-    return NextResponse.json({
-      ...result.participant,
-      condition: result.assignedCondition,
-      survey: result.participant.survey
-        ? JSON.parse(JSON.stringify(result.participant.survey))
+    // JSONシリアライズ安全化（Prismaオブジェクトを純粋JSON化）
+    const safeParticipant = {
+      ...participant,
+      condition: assignedCondition,
+      survey: participant.survey
+        ? JSON.parse(JSON.stringify(participant.survey))
         : {},
-    });
+    };
+
+    return NextResponse.json(safeParticipant);
   } catch (error: any) {
     console.error("API error:", error);
     return NextResponse.json(
@@ -128,5 +109,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-
