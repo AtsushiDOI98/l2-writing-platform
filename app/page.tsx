@@ -383,6 +383,8 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
             <option value="">授業名を選択してください</option>
             <option value="月曜3限">月曜3限</option>
             <option value="月曜4限">月曜4限</option>
+            <option value="水曜3限">水曜3限</option>
+            <option value="水曜4限">水曜4限</option>
             <option value="木曜3限">木曜3限</option>
             <option value="木曜4限">木曜4限</option>
           </select>
