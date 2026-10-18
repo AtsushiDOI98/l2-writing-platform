@@ -411,6 +411,10 @@ After these fifteen steps, the chocolate is ready to eat and delivered to stores
                   }),
                 });
                 const data = await res.json();
+                if (!res.ok || !data?.condition) {
+                  alert("グループの割り振りに失敗しました。もう一度お試しください。");
+                  return;
+                }
                 setCondition(
                   data && data.condition
                     ? String(data.condition).trim().toLowerCase()

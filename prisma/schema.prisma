@@ -36,3 +36,11 @@ model AssignQueue {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
 }
+
+// 学籍番号ごとの条件割り振り（assign_condition 関数が書き込む）
+model Assignment {
+  studentId String   @id
+  seq       Int      @unique
+  condition String
+  createdAt DateTime @default(now())
+}
